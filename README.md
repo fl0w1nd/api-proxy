@@ -12,7 +12,7 @@ docker run -d \
   -p <宿主机端口>:5000 \
   -v <本地配置文件路径>:/app/config/config.json \
   --name api-proxy \
-  fl0w1nd/api-proxy:<标签>
+  fl0w1nd/api-proxy:main
 ```
 
 **参数说明：**
