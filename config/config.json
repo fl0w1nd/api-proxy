@@ -1,0 +1,24 @@
+{
+  "api_mappings": {
+    "/gemini": {
+      "target_url": "https://generativelanguage.googleapis.com"
+    },
+    "/openai": {
+      "target_url": "https://api.openai.com"
+    },
+    "/openrouter": {
+      "target_url": "https://openrouter.ai/api",
+      "extra_headers": {
+        "HTTP-Referer": "https://example.com",
+        "X-Title": "EXAMPLE"
+      }
+    },
+    "/github": {
+      "target_url": "https://models.inference.ai.azure.com"
+    },
+    "/xai": {
+      "target_url": "https://api.x.ai"
+    }
+  },
+  "log_level": "info"
+}
