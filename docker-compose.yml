@@ -2,8 +2,11 @@ version: '3.8'
 services:
   api-proxy:
     image: fl0w1nd/api-proxy:main
+    container_name: api-proxy
     ports:
       - "5000:5000"
     volumes:
-      - ./config/config.json:/app/config/config.json
+      - ./config:/app/config
+    environment:
+      - ADMIN_PASSWORD=admin
     restart: always

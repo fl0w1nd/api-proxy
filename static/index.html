@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="API代理管理系统 - 便捷管理API转发配置和日志">
+  <title>API代理管理</title>
+  <!-- Favicon链接 -->
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- 添加Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-logo">
+        <h1><i class="material-icons">swap_horiz</i> API代理管理</h1>
+      </div>
+      <div class="auth-status">
+        <span id="auth-status-text">未登录</span>
+        <button id="login-button"><i class="material-icons">login</i> 登录</button>
+        <button id="logout-button" style="display:none"><i class="material-icons">logout</i> 退出</button>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="login-required" id="login-message">
+        <div class="message">
+          <i class="material-icons large-icon">lock</i>
+          <h2>请先登录</h2>
+          <p>需要登录后才能管理API代理配置和查看日志</p>
+        </div>
+      </div>
+
+      <div class="content" style="display:none">
+        <div class="tabs">
+          <button class="tab-button active" data-tab="config"><i class="material-icons">settings</i> 配置管理</button>
+          <button class="tab-button" data-tab="logs"><i class="material-icons">history</i> 请求日志</button>
+        </div>
+
+        <div class="tab-content">
+          <div class="tab-pane active" id="config-tab">
+            <div class="config-container">
+              <div class="config-actions">
+                <button id="add-mapping"><i class="material-icons">add</i> 添加新映射</button>
+                <button id="save-config"><i class="material-icons">save</i> 保存配置</button>
+              </div>
+              
+              <div class="config-form">
+                <div class="form-group">
+                  <label for="log-level">日志级别:</label>
+                  <select id="log-level">
+                    <option value="debug">调试 (Debug)</option>
+                    <option value="info">信息 (Info)</option>
+                    <option value="warn">警告 (Warn)</option>
+                    <option value="error">错误 (Error)</option>
+                  </select>
+                </div>
+
+                <h3>API映射配置</h3>
+                <div id="mappings-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="logs-tab">
+            <div class="logs-container">
+              <div class="logs-filter">
+                <label for="prefix-select">选择API前缀:</label>
+                <select id="prefix-select"></select>
+                <button id="refresh-logs"><i class="material-icons">refresh</i> 刷新日志</button>
+              </div>
+              <div class="logs-table-container">
+                <table class="logs-table">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>方法</th>
+                      <th>路径</th>
+                      <th>目标URL</th>
+                      <th>状态</th>
+                      <th>耗时(ms)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logs-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模板 -->
+  <template id="mapping-template">
+    <div class="mapping-item">
+      <div class="mapping-header">
+        <h4><i class="material-icons">route</i> 路径映射</h4>
+        <button class="remove-mapping"><i class="material-icons">delete</i> 删除</button>
+      </div>
+      <div class="form-group">
+        <label>路径前缀:</label>
+        <input type="text" class="prefix-input" placeholder="/api" required>
+      </div>
+      <div class="form-group">
+        <label>目标URL:</label>
+        <input type="text" class="target-url-input" placeholder="https://example.com/api" required>
+      </div>
+      <div class="headers-section">
+        <h5>额外请求头 <button class="add-header"><i class="material-icons">add</i> 添加</button></h5>
+        <div class="headers-container"></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="header-template">
+    <div class="header-item">
+      <input type="text" class="header-key" placeholder="Header名称">
+      <input type="text" class="header-value" placeholder="Header值">
+      <button class="remove-header"><i class="material-icons">remove_circle</i></button>
+    </div>
+  </template>
+
+  <script src="/static/script.js"></script>
+</body>
+</html> 
