@@ -59,6 +59,20 @@
                   </select>
                 </div>
 
+                <h3><i class="material-icons">timer</i> 全局超时配置</h3>
+                <div class="timeout-config">
+                  <div class="form-group">
+                    <label for="default-timeout">默认请求超时 (毫秒):</label>
+                    <input type="number" id="default-timeout" min="1000" max="600000" step="1000" placeholder="60000">
+                    <small>推荐值: 60000-120000 (1-2分钟)</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="default-connect-timeout">默认连接超时 (毫秒):</label>
+                    <input type="number" id="default-connect-timeout" min="1000" max="120000" step="1000" placeholder="15000">
+                    <small>推荐值: 10000-30000 (10-30秒)</small>
+                  </div>
+                </div>
+
                 <h3>API映射配置</h3>
                 <div id="mappings-container"></div>
               </div>
@@ -108,6 +122,19 @@
       <div class="form-group">
         <label>目标URL:</label>
         <input type="text" class="target-url-input" placeholder="https://example.com/api" required>
+      </div>
+      <div class="timeout-section">
+        <h5><i class="material-icons">timer</i> 超时配置 (可选，留空使用全局默认值)</h5>
+        <div class="timeout-inputs">
+          <div class="form-group">
+            <label>请求超时 (毫秒):</label>
+            <input type="number" class="timeout-input" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+          </div>
+          <div class="form-group">
+            <label>连接超时 (毫秒):</label>
+            <input type="number" class="connect-timeout-input" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+          </div>
+        </div>
       </div>
       <div class="headers-section">
         <h5>额外请求头 <button class="add-header"><i class="material-icons">add</i> 添加</button></h5>

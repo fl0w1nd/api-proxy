@@ -15,6 +15,8 @@ const addMappingButton = document.getElementById('add-mapping');
 const saveConfigButton = document.getElementById('save-config');
 const mappingsContainer = document.getElementById('mappings-container');
 const logLevelSelect = document.getElementById('log-level');
+const defaultTimeoutInput = document.getElementById('default-timeout');
+const defaultConnectTimeoutInput = document.getElementById('default-connect-timeout');
 const prefixSelect = document.getElementById('prefix-select');
 const logsBody = document.getElementById('logs-body');
 const refreshLogsButton = document.getElementById('refresh-logs');
@@ -199,6 +201,10 @@ function renderConfig() {
   // 设置日志级别
   logLevelSelect.value = currentConfig.log_level;
   
+  // 设置全局超时配置
+  defaultTimeoutInput.value = currentConfig.default_timeout || '';
+  defaultConnectTimeoutInput.value = currentConfig.default_connect_timeout || '';
+  
   // 清空现有映射
   mappingsContainer.innerHTML = '';
   
@@ -221,6 +227,14 @@ function createMappingElement(prefix, mapping) {
   // 设置基本字段
   element.querySelector('.prefix-input').value = prefix;
   element.querySelector('.target-url-input').value = mapping.target_url;
+  
+  // 设置超时配置
+  if (mapping.timeout) {
+    element.querySelector('.timeout-input').value = mapping.timeout;
+  }
+  if (mapping.connect_timeout) {
+    element.querySelector('.connect-timeout-input').value = mapping.connect_timeout;
+  }
   
   // 设置删除按钮事件
   element.querySelector('.remove-mapping').addEventListener('click', function() {
@@ -308,6 +322,17 @@ function saveConfig() {
     log_level: logLevelSelect.value
   };
   
+  // 添加全局超时配置
+  const defaultTimeout = parseInt(defaultTimeoutInput.value);
+  const defaultConnectTimeout = parseInt(defaultConnectTimeoutInput.value);
+  
+  if (defaultTimeout && defaultTimeout > 0) {
+    newConfig.default_timeout = defaultTimeout;
+  }
+  if (defaultConnectTimeout && defaultConnectTimeout > 0) {
+    newConfig.default_connect_timeout = defaultConnectTimeout;
+  }
+  
   // 获取所有映射
   const mappingElements = mappingsContainer.querySelectorAll('.mapping-item');
   
@@ -333,6 +358,10 @@ function saveConfig() {
       }
     }
     
+    // 获取超时配置
+    const timeout = parseInt(element.querySelector('.timeout-input').value);
+    const connectTimeout = parseInt(element.querySelector('.connect-timeout-input').value);
+    
     // 添加到配置
     newConfig.api_mappings[prefix] = {
       target_url: targetUrl
@@ -340,6 +369,14 @@ function saveConfig() {
     
     if (Object.keys(extraHeaders).length > 0) {
       newConfig.api_mappings[prefix].extra_headers = extraHeaders;
+    }
+    
+    // 添加超时配置（如果有设置）
+    if (timeout && timeout > 0) {
+      newConfig.api_mappings[prefix].timeout = timeout;
+    }
+    if (connectTimeout && connectTimeout > 0) {
+      newConfig.api_mappings[prefix].connect_timeout = connectTimeout;
     }
   }
   

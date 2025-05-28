@@ -17,8 +17,12 @@ interface Config {
   api_mappings: Record<string, {
     target_url: string;
     extra_headers?: Record<string, string>;
+    timeout?: number; // 请求超时时间（毫秒）
+    connect_timeout?: number; // 连接超时时间（毫秒）
   }>;
   log_level: string;
+  default_timeout?: number; // 默认请求超时时间（毫秒）
+  default_connect_timeout?: number; // 默认连接超时时间（毫秒）
 }
 
 // 请求日志存储，按路径前缀分组
@@ -38,10 +42,14 @@ const DEFAULT_CONFIG: Config = {
       target_url: "https://example.com/api",
       extra_headers: {
         "X-Proxy-User": "default"
-      }
+      },
+      timeout: 30000, // 30秒请求超时
+      connect_timeout: 10000 // 10秒连接超时
     }
   },
-  log_level: "info"
+  log_level: "info",
+  default_timeout: 60000, // 默认60秒请求超时
+  default_connect_timeout: 15000 // 默认15秒连接超时
 };
 
 const loadConfig = async (): Promise<Config> => {
@@ -242,6 +250,16 @@ const handler = async (request: Request): Promise<Response> => {
       
       const startTime = performance.now();
       
+      // 获取超时配置
+      const requestTimeout = routeConfig.timeout || config.default_timeout || 60000;
+      const connectTimeout = routeConfig.connect_timeout || config.default_connect_timeout || 15000;
+      
+      // 创建 AbortController 用于超时控制
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, requestTimeout);
+      
       try {
         const headers = new Headers(request.headers);
 
@@ -255,8 +273,10 @@ const handler = async (request: Request): Promise<Response> => {
           method: request.method,
           headers: headers,
           body: request.body,
+          signal: abortController.signal,
         });
         
+        clearTimeout(timeoutId);
         const endTime = performance.now();
         
         // 记录请求日志
@@ -274,7 +294,20 @@ const handler = async (request: Request): Promise<Response> => {
           headers: response.headers,
         });
       } catch (error) {
+        clearTimeout(timeoutId);
         const endTime = performance.now();
+        
+        let status = 502;
+        let errorMessage = error.message;
+        
+        // 检查是否是超时错误
+        if (error.name === 'AbortError') {
+          status = 504;
+          errorMessage = `Request timeout after ${requestTimeout}ms`;
+          log("warn", `Request timeout for ${pathname}: ${requestTimeout}ms exceeded`);
+        } else {
+          log("error", `API ${pathname} failed: ${error.message}`);
+        }
         
         // 记录错误请求日志
         saveRequestLog(prefix, {
@@ -282,12 +315,11 @@ const handler = async (request: Request): Promise<Response> => {
           method: request.method,
           path: pathname + url.search,
           targetUrl,
-          status: 502,
+          status: status,
           duration: Math.round(endTime - startTime),
         });
         
-        log("error", `API ${pathname} failed: ${error.message}`);
-        return new Response(`API Connection Failed: ${error.message}`, { status: 502 });
+        return new Response(`API Connection Failed: ${errorMessage}`, { status: status });
       }
     }
   }

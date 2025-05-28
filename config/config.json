@@ -20,5 +20,7 @@
       "target_url": "https://api.x.ai"
     }
   },
-  "log_level": "info"
+  "log_level": "info",
+  "default_timeout": 60000,
+  "default_connect_timeout": 15000
 }
