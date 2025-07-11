@@ -225,6 +225,17 @@ function createMappingElement(prefix, mapping) {
   element.querySelector('.prefix-input').value = prefix;
   element.querySelector('.target-url-input').value = mapping.target_url;
   
+  // 更新卡片标题显示映射名称
+  const titleElement = element.querySelector('.mapping-title');
+  const titleInput = element.querySelector('.title-input');
+  const mappingName = mapping.name || 'default';
+  
+  titleElement.textContent = mappingName;
+  titleInput.value = mappingName;
+  
+  // 设置标题点击编辑功能
+  setupTitleEditing(titleElement, titleInput);
+  
   // 设置超时配置
   if (mapping.timeout) {
     element.querySelector('.timeout-input').value = mapping.timeout;
@@ -290,6 +301,38 @@ function createMappingElement(prefix, mapping) {
   return element;
 }
 
+function setupTitleEditing(titleElement, titleInput) {
+  // 点击标题进入编辑模式
+  titleElement.addEventListener('click', function() {
+    titleElement.style.display = 'none';
+    titleInput.style.display = 'inline-block';
+    titleInput.focus();
+    titleInput.select();
+  });
+  
+  // 处理编辑完成
+  function finishEditing() {
+    const newName = titleInput.value.trim() || 'default';
+    titleElement.textContent = newName;
+    titleElement.style.display = 'inline-block';
+    titleInput.style.display = 'none';
+  }
+  
+  // 按Enter或失去焦点时完成编辑
+  titleInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      finishEditing();
+    } else if (e.key === 'Escape') {
+      // 取消编辑，恢复原值
+      titleInput.value = titleElement.textContent;
+      titleElement.style.display = 'inline-block';
+      titleInput.style.display = 'none';
+    }
+  });
+  
+  titleInput.addEventListener('blur', finishEditing);
+}
+
 function createHeaderElement(key = '', value = '') {
   const template = headerTemplate.content.cloneNode(true);
   const element = template.querySelector('.header-row');
@@ -309,7 +352,7 @@ function createHeaderElement(key = '', value = '') {
 }
 
 function addMapping() {
-  const mappingElement = createMappingElement('', { target_url: '' });
+  const mappingElement = createMappingElement('', { name: 'default', target_url: '' });
   
   // 如果是第一个映射，清除空状态提示
   if (mappingsContainer.querySelector('.empty-state')) {
@@ -327,7 +370,7 @@ function addMapping() {
   // 滚动到新添加的映射
   mappingElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
   
-  // 自动展开第一个输入框
+  // 自动聚焦到路径前缀输入框
   const firstInput = mappingElement.querySelector('.prefix-input');
   if (firstInput) {
     firstInput.focus();
@@ -356,6 +399,7 @@ function saveConfig() {
   const mappingElements = mappingsContainer.querySelectorAll('.mapping-card');
   
   for (const element of mappingElements) {
+    const name = element.querySelector('.mapping-title').textContent.trim() || 'default';
     const prefix = element.querySelector('.prefix-input').value.trim();
     const targetUrl = element.querySelector('.target-url-input').value.trim();
     
@@ -383,6 +427,7 @@ function saveConfig() {
     
     // 添加到配置
     newConfig.api_mappings[prefix] = {
+      name: name,
       target_url: targetUrl
     };
     

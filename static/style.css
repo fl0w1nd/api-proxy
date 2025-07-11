@@ -401,6 +401,38 @@ header h1 {
   color: var(--text-primary);
 }
 
+.editable-title {
+  cursor: text;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-small);
+  transition: var(--transition);
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.editable-title:hover {
+  background-color: var(--bg-secondary);
+  border: 1px dashed var(--primary-color);
+  color: var(--primary-color);
+}
+
+.title-input {
+  border: 2px solid var(--primary-color);
+  border-radius: var(--border-radius-small);
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  width: auto;
+  min-width: 120px;
+}
+
+.title-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .mapping-card .card-content {
   padding: 20px;
 }
@@ -792,11 +824,6 @@ header h1 {
 
 button .material-icons {
   font-size: 18px;
-}
-
-/* 工具提示样式 */
-[title] {
-  cursor: help;
 }
 
 /* 滚动条样式 */

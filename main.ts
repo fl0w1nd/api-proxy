@@ -15,6 +15,7 @@ interface RequestLog {
 
 interface Config {
   api_mappings: Record<string, {
+    name?: string; // 映射名称，默认为"default"
     target_url: string;
     extra_headers?: Record<string, string>;
     timeout?: number; // 请求超时时间（毫秒）
@@ -39,6 +40,7 @@ const CONFIG_FILE_PATH = "./config/config.json";
 const DEFAULT_CONFIG: Config = {
   api_mappings: {
     "/default/": {
+      name: "default",
       target_url: "https://example.com/api",
       extra_headers: {
         "X-Proxy-User": "default"
@@ -55,7 +57,24 @@ const DEFAULT_CONFIG: Config = {
 const loadConfig = async (): Promise<Config> => {
   try {
     const configText = await Deno.readTextFile(CONFIG_FILE_PATH);
-    return JSON.parse(configText);
+    const config = JSON.parse(configText);
+    
+    // 配置迁移：为没有名称的映射添加默认名称
+    let needsSave = false;
+    for (const [prefix, mapping] of Object.entries(config.api_mappings)) {
+      if (!mapping.name) {
+        mapping.name = "default";
+        needsSave = true;
+      }
+    }
+    
+    // 如果有配置变更，保存配置
+    if (needsSave) {
+      console.log(`${new Date().toISOString()} [INFO] Migrating config: adding default names to mappings`);
+      await Deno.writeTextFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
+    }
+    
+    return config;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       // 配置文件不存在，创建默认配置
