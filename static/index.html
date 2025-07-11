@@ -154,9 +154,14 @@
           <span class="mapping-title editable-title" title="点击编辑名称">API映射</span>
           <input type="text" class="title-input" style="display: none;">
         </div>
-        <button class="remove-mapping btn-danger-small">
-          <i class="material-icons">delete</i>
-        </button>
+        <div class="card-actions">
+          <button class="copy-mapping-url btn-small" title="复制URL">
+            <i class="material-icons">content_copy</i>
+          </button>
+          <button class="remove-mapping btn-danger-small">
+            <i class="material-icons">delete</i>
+          </button>
+        </div>
       </div>
       <div class="card-content">
         <div class="mapping-basic">
@@ -225,9 +230,14 @@
           <input type="text" class="name-input" style="display: none;">
           <span class="redirect-status">活跃</span>
         </div>
-        <button class="remove-temp-redirect btn-danger-small">
-          <i class="material-icons">delete</i>
-        </button>
+        <div class="card-actions">
+          <button class="copy-temp-url btn-small" title="复制URL">
+            <i class="material-icons">content_copy</i>
+          </button>
+          <button class="remove-temp-redirect btn-danger-small">
+            <i class="material-icons">delete</i>
+          </button>
+        </div>
       </div>
       <div class="card-content">
         <div class="redirect-info">
@@ -235,9 +245,6 @@
             <label>访问路径：</label>
             <div class="path-display">
               <code class="redirect-url"></code>
-              <button class="copy-url btn-small">
-                <i class="material-icons">content_copy</i>
-              </button>
             </div>
           </div>
           <div class="info-row">

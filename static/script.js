@@ -289,6 +289,23 @@ function createMappingElement(prefix, mapping) {
       }, 300);
     }
   });
+
+  // 设置复制按钮事件
+  element.querySelector('.copy-mapping-url').addEventListener('click', function() {
+    const prefixInput = element.querySelector('.prefix-input');
+    const url = `${window.location.origin}${prefixInput.value}`;
+    
+    // 使用多种方式尝试复制
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        showNotification('映射URL已复制到剪贴板', 'success');
+      }).catch(() => {
+        fallbackCopyTextToClipboard(url, '映射URL已复制到剪贴板');
+      });
+    } else {
+      fallbackCopyTextToClipboard(url, '映射URL已复制到剪贴板');
+    }
+  });
   
   // 设置添加请求头按钮事件
   element.querySelector('.add-header').addEventListener('click', function() {
@@ -777,7 +794,7 @@ function createTempRedirectElement(redirect) {
   // 设置基本信息
   element.querySelector('.redirect-name').textContent = redirect.name || redirect.id;
   element.querySelector('.name-input').value = redirect.name || redirect.id;
-  element.querySelector('.redirect-url').textContent = `${window.location.origin}${redirect.path}`;
+  element.querySelector('.redirect-url').textContent = redirect.path;
   element.querySelector('.target-url').textContent = redirect.target_url;
   
   // 设置过期时间
@@ -792,7 +809,7 @@ function createTempRedirectElement(redirect) {
   updateTempRedirectStatus(element, redirect);
   
   // 设置复制按钮
-  element.querySelector('.copy-url').addEventListener('click', (e) => {
+  element.querySelector('.copy-temp-url').addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -801,12 +818,12 @@ function createTempRedirectElement(redirect) {
     // 使用多种方式尝试复制
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
-        showNotification('链接已复制到剪贴板', 'success');
+        showNotification('临时转发链接已复制到剪贴板', 'success');
       }).catch(() => {
-        fallbackCopyTextToClipboard(url);
+        fallbackCopyTextToClipboard(url, '临时转发链接已复制到剪贴板');
       });
     } else {
-      fallbackCopyTextToClipboard(url);
+      fallbackCopyTextToClipboard(url, '临时转发链接已复制到剪贴板');
     }
   });
   
@@ -1079,7 +1096,7 @@ function deleteTempRedirect(redirectId) {
 }
 
 // 备用复制方法
-function fallbackCopyTextToClipboard(text) {
+function fallbackCopyTextToClipboard(text, successMessage = '链接已复制到剪贴板') {
   const textArea = document.createElement('textarea');
   textArea.value = text;
   textArea.style.position = 'fixed';
@@ -1092,7 +1109,7 @@ function fallbackCopyTextToClipboard(text) {
   try {
     const successful = document.execCommand('copy');
     if (successful) {
-      showNotification('链接已复制到剪贴板', 'success');
+      showNotification(successMessage, 'success');
     } else {
       showNotification('复制失败，请手动复制', 'error');
     }

@@ -304,21 +304,25 @@ header h1 {
 }
 
 .card-header {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-  padding: 20px 24px;
+  background: var(--bg-secondary);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-color);
 }
 
-.card-header h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.card-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 }
 
 .card-content {
@@ -925,16 +929,21 @@ button .material-icons {
 .redirect-name {
   font-weight: 600;
   color: var(--text-primary);
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
+  cursor: text;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-small);
   transition: var(--transition);
+  position: relative;
+  border: 1px solid transparent;
   min-width: 60px;
   display: inline-block;
+  text-align: center;
 }
 
 .redirect-name:hover {
-  background: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
+  border: 1px dashed var(--primary-color);
+  color: var(--primary-color);
 }
 
 .name-input {
@@ -942,12 +951,13 @@ button .material-icons {
   color: var(--text-primary);
   background: var(--bg-primary);
   border: 2px solid var(--primary-color);
-  border-radius: 4px;
-  padding: 2px 4px;
+  border-radius: var(--border-radius-small);
+  padding: 4px 8px;
   font-size: inherit;
   font-family: inherit;
-  min-width: 100px;
+  min-width: 120px;
   width: auto;
+  text-align: center;
 }
 
 .name-input:focus {
