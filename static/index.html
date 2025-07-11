@@ -43,48 +43,64 @@
         <div class="tab-content">
           <div class="tab-pane active" id="config-tab">
             <div class="config-container">
-              <div class="config-actions">
-                <button id="add-mapping"><i class="material-icons">add</i> 添加新映射</button>
-                <button id="save-config"><i class="material-icons">save</i> 保存配置</button>
+              <!-- 全局配置卡片 -->
+              <div class="config-card global-config">
+                <div class="card-header">
+                  <h3><i class="material-icons">tune</i> 全局配置</h3>
+                  <button id="save-config" class="btn-primary">
+                    <i class="material-icons">save</i> 保存配置
+                  </button>
+                </div>
+                <div class="card-content">
+                  <div class="config-grid">
+                    <div class="config-item">
+                      <label for="log-level">日志级别</label>
+                      <select id="log-level">
+                        <option value="debug">调试 (Debug)</option>
+                        <option value="info">信息 (Info)</option>
+                        <option value="warn">警告 (Warn)</option>
+                        <option value="error">错误 (Error)</option>
+                      </select>
+                    </div>
+                    <div class="config-item">
+                      <label for="default-timeout">请求超时 (ms)</label>
+                      <input type="number" id="default-timeout" min="1000" max="600000" step="1000" placeholder="60000">
+                    </div>
+                    <div class="config-item">
+                      <label for="default-connect-timeout">连接超时 (ms)</label>
+                      <input type="number" id="default-connect-timeout" min="1000" max="120000" step="1000" placeholder="15000">
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div class="config-form">
-                <div class="form-group">
-                  <label for="log-level">日志级别:</label>
-                  <select id="log-level">
-                    <option value="debug">调试 (Debug)</option>
-                    <option value="info">信息 (Info)</option>
-                    <option value="warn">警告 (Warn)</option>
-                    <option value="error">错误 (Error)</option>
-                  </select>
-                </div>
 
-                <h3><i class="material-icons">timer</i> 全局超时配置</h3>
-                <div class="timeout-config">
-                  <div class="form-group">
-                    <label for="default-timeout">默认请求超时 (毫秒):</label>
-                    <input type="number" id="default-timeout" min="1000" max="600000" step="1000" placeholder="60000">
-                    <small>推荐值: 60000-120000 (1-2分钟)</small>
-                  </div>
-                  <div class="form-group">
-                    <label for="default-connect-timeout">默认连接超时 (毫秒):</label>
-                    <input type="number" id="default-connect-timeout" min="1000" max="120000" step="1000" placeholder="15000">
-                    <small>推荐值: 10000-30000 (10-30秒)</small>
-                  </div>
+              <!-- API映射配置 -->
+              <div class="config-section">
+                <div class="section-header">
+                  <h3><i class="material-icons">route</i> API映射配置</h3>
+                  <button id="add-mapping" class="btn-secondary">
+                    <i class="material-icons">add</i> 添加映射
+                  </button>
                 </div>
-
-                <h3>API映射配置</h3>
-                <div id="mappings-container"></div>
+                <div id="mappings-container" class="mappings-grid">
+                  <!-- 映射卡片将在这里动态生成 -->
+                </div>
               </div>
             </div>
           </div>
 
           <div class="tab-pane" id="logs-tab">
             <div class="logs-container">
-              <div class="logs-filter">
-                <label for="prefix-select">选择API前缀:</label>
-                <select id="prefix-select"></select>
-                <button id="refresh-logs"><i class="material-icons">refresh</i> 刷新日志</button>
+              <div class="logs-header">
+                <div class="logs-filter">
+                  <div class="filter-group">
+                    <label for="prefix-select">API前缀</label>
+                    <select id="prefix-select"></select>
+                  </div>
+                  <button id="refresh-logs" class="btn-secondary">
+                    <i class="material-icons">refresh</i> 刷新
+                  </button>
+                </div>
               </div>
               <div class="logs-table-container">
                 <table class="logs-table">
@@ -108,46 +124,72 @@
     </div>
   </div>
 
-  <!-- 模板 -->
+  <!-- 映射卡片模板 -->
   <template id="mapping-template">
-    <div class="mapping-item">
-      <div class="mapping-header">
-        <h4><i class="material-icons">route</i> 路径映射</h4>
-        <button class="remove-mapping"><i class="material-icons">delete</i> 删除</button>
+    <div class="mapping-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="material-icons">swap_horiz</i>
+          <span>API映射</span>
+        </div>
+        <button class="remove-mapping btn-danger-small">
+          <i class="material-icons">delete</i>
+        </button>
       </div>
-      <div class="form-group">
-        <label>路径前缀:</label>
-        <input type="text" class="prefix-input" placeholder="/api" required>
-      </div>
-      <div class="form-group">
-        <label>目标URL:</label>
-        <input type="text" class="target-url-input" placeholder="https://example.com/api" required>
-      </div>
-      <div class="timeout-section">
-        <h5><i class="material-icons">timer</i> 超时配置 (可选，留空使用全局默认值)</h5>
-        <div class="timeout-inputs">
-          <div class="form-group">
-            <label>请求超时 (毫秒):</label>
-            <input type="number" class="timeout-input" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+      <div class="card-content">
+        <div class="mapping-basic">
+          <div class="input-group">
+            <label>路径前缀</label>
+            <input type="text" class="prefix-input" placeholder="/api" required>
           </div>
-          <div class="form-group">
-            <label>连接超时 (毫秒):</label>
-            <input type="number" class="connect-timeout-input" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+          <div class="input-group">
+            <label>目标URL</label>
+            <input type="text" class="target-url-input" placeholder="https://example.com/api" required>
           </div>
         </div>
-      </div>
-      <div class="headers-section">
-        <h5>额外请求头 <button class="add-header"><i class="material-icons">add</i> 添加</button></h5>
-        <div class="headers-container"></div>
+        
+        <div class="mapping-advanced">
+          <div class="advanced-toggle">
+            <button type="button" class="toggle-advanced">
+              <i class="material-icons">expand_more</i>
+              <span>高级配置</span>
+            </button>
+          </div>
+          <div class="advanced-content" style="display: none;">
+            <div class="timeout-row">
+              <div class="input-group">
+                <label>请求超时 (ms)</label>
+                <input type="number" class="timeout-input" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+              </div>
+              <div class="input-group">
+                <label>连接超时 (ms)</label>
+                <input type="number" class="connect-timeout-input" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+              </div>
+            </div>
+            <div class="headers-section">
+              <div class="headers-header">
+                <label>请求头</label>
+                <button class="add-header btn-small">
+                  <i class="material-icons">add</i> 添加
+                </button>
+              </div>
+              <div class="headers-container">
+                <!-- 请求头将在这里动态生成 -->
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </template>
 
   <template id="header-template">
-    <div class="header-item">
+    <div class="header-row">
       <input type="text" class="header-key" placeholder="Header名称">
       <input type="text" class="header-value" placeholder="Header值">
-      <button class="remove-header"><i class="material-icons">remove_circle</i></button>
+      <button class="remove-header btn-danger-small">
+        <i class="material-icons">close</i>
+      </button>
     </div>
   </template>
 

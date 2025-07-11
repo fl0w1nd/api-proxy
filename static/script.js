@@ -49,9 +49,6 @@ function init() {
   
   // 添加页面加载动画
   document.body.classList.add('loaded');
-  
-  // 添加主题切换功能
-  setupTheme();
 }
 
 // 认证相关
@@ -154,12 +151,12 @@ function updateAuthUI(authenticated) {
   if (authenticated) {
     authStatusText.textContent = '已登录';
     loginButton.style.display = 'none';
-    logoutButton.style.display = 'inline-block';
+    logoutButton.style.display = 'inline-flex';
     loginMessage.style.display = 'none';
     contentContainer.style.display = 'block';
   } else {
     authStatusText.textContent = '未登录';
-    loginButton.style.display = 'inline-block';
+    loginButton.style.display = 'inline-flex';
     logoutButton.style.display = 'none';
     loginMessage.style.display = 'block';
     contentContainer.style.display = 'none';
@@ -216,13 +213,13 @@ function renderConfig() {
   
   // 如果没有映射配置，显示空状态提示
   if (Object.keys(currentConfig.api_mappings).length === 0) {
-    showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加新映射"按钮创建第一个API映射');
+    showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加映射"按钮创建第一个API映射');
   }
 }
 
 function createMappingElement(prefix, mapping) {
   const template = mappingTemplate.content.cloneNode(true);
-  const element = template.querySelector('.mapping-item');
+  const element = template.querySelector('.mapping-card');
   
   // 设置基本字段
   element.querySelector('.prefix-input').value = prefix;
@@ -236,6 +233,22 @@ function createMappingElement(prefix, mapping) {
     element.querySelector('.connect-timeout-input').value = mapping.connect_timeout;
   }
   
+  // 设置高级配置切换
+  const toggleButton = element.querySelector('.toggle-advanced');
+  const advancedContent = element.querySelector('.advanced-content');
+  
+  toggleButton.addEventListener('click', function() {
+    const isExpanded = advancedContent.style.display !== 'none';
+    
+    if (isExpanded) {
+      advancedContent.style.display = 'none';
+      toggleButton.classList.remove('expanded');
+    } else {
+      advancedContent.style.display = 'block';
+      toggleButton.classList.add('expanded');
+    }
+  });
+  
   // 设置删除按钮事件
   element.querySelector('.remove-mapping').addEventListener('click', function() {
     if (confirm('确定要删除此映射吗?')) {
@@ -246,7 +259,7 @@ function createMappingElement(prefix, mapping) {
         
         // 检查是否需要显示空状态
         if (mappingsContainer.children.length === 0) {
-          showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加新映射"按钮创建API映射');
+          showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加映射"按钮创建API映射');
         }
       }, 300);
     }
@@ -279,7 +292,7 @@ function createMappingElement(prefix, mapping) {
 
 function createHeaderElement(key = '', value = '') {
   const template = headerTemplate.content.cloneNode(true);
-  const element = template.querySelector('.header-item');
+  const element = template.querySelector('.header-row');
   
   element.querySelector('.header-key').value = key;
   element.querySelector('.header-value').value = value;
@@ -313,6 +326,12 @@ function addMapping() {
   
   // 滚动到新添加的映射
   mappingElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  
+  // 自动展开第一个输入框
+  const firstInput = mappingElement.querySelector('.prefix-input');
+  if (firstInput) {
+    firstInput.focus();
+  }
 }
 
 function saveConfig() {
@@ -334,20 +353,20 @@ function saveConfig() {
   }
   
   // 获取所有映射
-  const mappingElements = mappingsContainer.querySelectorAll('.mapping-item');
+  const mappingElements = mappingsContainer.querySelectorAll('.mapping-card');
   
   for (const element of mappingElements) {
     const prefix = element.querySelector('.prefix-input').value.trim();
     const targetUrl = element.querySelector('.target-url-input').value.trim();
     
     if (!prefix || !targetUrl) {
-      alert('请为所有映射填写路径前缀和目标URL');
+      showNotification('请为所有映射填写路径前缀和目标URL', 'warning');
       return;
     }
     
     // 构建请求头对象
     const extraHeaders = {};
-    const headerElements = element.querySelectorAll('.header-item');
+    const headerElements = element.querySelectorAll('.header-row');
     
     for (const headerElement of headerElements) {
       const key = headerElement.querySelector('.header-key').value.trim();
@@ -385,6 +404,8 @@ function saveConfig() {
 }
 
 function saveConfigToServer(config) {
+  showLoading(true);
+  
   fetchWithAuth('/api/config', {
     method: 'PUT',
     headers: {
@@ -394,17 +415,19 @@ function saveConfigToServer(config) {
   })
   .then(response => response.json())
   .then(result => {
+    showLoading(false);
     if (result.success) {
-      alert('配置保存成功');
+      showNotification('配置保存成功', 'success');
       currentConfig = config;
       loadPrefixOptions(); // 更新日志前缀选项
     } else {
-      alert(`保存失败: ${result.error || '未知错误'}`);
+      showNotification(`保存失败: ${result.error || '未知错误'}`, 'error');
     }
   })
   .catch(error => {
+    showLoading(false);
     console.error('Save config error:', error);
-    alert(`保存失败: ${error.message}`);
+    showNotification(`保存失败: ${error.message}`, 'error');
   });
 }
 
@@ -452,13 +475,18 @@ function loadLogs() {
   
   if (!prefix) return;
   
+  showLoading(true);
+  
   fetchWithAuth(`/api/logs?prefix=${encodeURIComponent(prefix)}`)
   .then(response => response.json())
   .then(logs => {
+    showLoading(false);
     renderLogs(logs);
   })
   .catch(error => {
+    showLoading(false);
     console.error('Load logs error:', error);
+    showNotification('加载日志失败', 'error');
   });
 }
 
@@ -472,6 +500,8 @@ function renderLogs(logs) {
     cell.colSpan = 6;
     cell.textContent = '暂无日志数据';
     cell.style.textAlign = 'center';
+    cell.style.padding = '40px';
+    cell.style.color = 'var(--text-muted)';
     row.appendChild(cell);
     logsBody.appendChild(row);
     return;
@@ -490,33 +520,58 @@ function renderLogs(logs) {
     // 方法
     const methodCell = document.createElement('td');
     methodCell.textContent = log.method;
+    // 为不同HTTP方法添加颜色
+    if (log.method === 'GET') {
+      methodCell.style.color = 'var(--success-color)';
+    } else if (log.method === 'POST') {
+      methodCell.style.color = 'var(--info-color)';
+    } else if (log.method === 'PUT') {
+      methodCell.style.color = 'var(--warning-color)';
+    } else if (log.method === 'DELETE') {
+      methodCell.style.color = 'var(--danger-color)';
+    }
     row.appendChild(methodCell);
     
     // 路径
     const pathCell = document.createElement('td');
     pathCell.textContent = log.path;
+    pathCell.style.fontFamily = 'monospace';
+    pathCell.style.fontSize = '13px';
     row.appendChild(pathCell);
     
     // 目标URL
     const targetCell = document.createElement('td');
     targetCell.textContent = log.targetUrl;
+    targetCell.style.fontFamily = 'monospace';
+    targetCell.style.fontSize = '13px';
     row.appendChild(targetCell);
     
     // 状态
     const statusCell = document.createElement('td');
     statusCell.textContent = log.status;
+    statusCell.style.fontWeight = '600';
     if (log.status >= 400) {
-      statusCell.style.color = '#e74c3c';
+      statusCell.style.color = 'var(--danger-color)';
     } else if (log.status >= 300) {
-      statusCell.style.color = '#f39c12';
+      statusCell.style.color = 'var(--warning-color)';
     } else {
-      statusCell.style.color = '#27ae60';
+      statusCell.style.color = 'var(--success-color)';
     }
     row.appendChild(statusCell);
     
     // 耗时
     const durationCell = document.createElement('td');
-    durationCell.textContent = `${log.duration} ms`;
+    durationCell.textContent = `${log.duration}ms`;
+    durationCell.style.fontFamily = 'monospace';
+    durationCell.style.fontSize = '13px';
+    // 为不同耗时添加颜色
+    if (log.duration > 5000) {
+      durationCell.style.color = 'var(--danger-color)';
+    } else if (log.duration > 2000) {
+      durationCell.style.color = 'var(--warning-color)';
+    } else {
+      durationCell.style.color = 'var(--success-color)';
+    }
     row.appendChild(durationCell);
     
     logsBody.appendChild(row);
@@ -619,10 +674,4 @@ function showEmptyState(container, title, message) {
   `;
   
   container.appendChild(emptyStateElement);
-}
-
-// 主题设置
-function setupTheme() {
-  // 实现主题切换功能
-  // 这里可以根据需要进一步实现暗色模式等功能
 } 
