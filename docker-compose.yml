@@ -1,7 +1,6 @@
-version: '3.8'
 services:
   api-proxy:
-    image: fl0w1nd/api-proxy:main
+    build: .
     container_name: api-proxy
     ports:
       - "5000:5000"
