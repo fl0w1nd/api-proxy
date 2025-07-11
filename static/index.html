@@ -37,6 +37,7 @@
       <div class="content" style="display:none">
         <div class="tabs">
           <button class="tab-button active" data-tab="config"><i class="material-icons">settings</i> 配置管理</button>
+          <button class="tab-button" data-tab="temp-redirects"><i class="material-icons">link</i> 临时转发</button>
           <button class="tab-button" data-tab="logs"><i class="material-icons">history</i> 请求日志</button>
         </div>
 
@@ -85,6 +86,26 @@
                 <div id="mappings-container" class="mappings-grid">
                   <!-- 映射卡片将在这里动态生成 -->
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="temp-redirects-tab">
+            <div class="temp-redirects-container">
+              <div class="temp-redirects-header">
+                <div class="section-header">
+                  <h3><i class="material-icons">link</i> 临时转发管理</h3>
+                  <button id="add-temp-redirect" class="btn-primary">
+                    <i class="material-icons">add</i> 生成临时转发
+                  </button>
+                </div>
+                <div class="temp-redirects-info">
+                  <p><i class="material-icons">info</i> 临时转发不会记录在日志中，过期后会自动删除</p>
+                </div>
+              </div>
+              
+              <div id="temp-redirects-list" class="temp-redirects-grid">
+                <!-- 临时转发卡片将在这里动态生成 -->
               </div>
             </div>
           </div>
@@ -191,6 +212,123 @@
       <button class="remove-header btn-danger-small">
         <i class="material-icons">close</i>
       </button>
+    </div>
+  </template>
+
+  <!-- 临时转发模板 -->
+  <template id="temp-redirect-template">
+    <div class="temp-redirect-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="material-icons">link</i>
+          <span class="redirect-name editable-title" title="点击编辑名称">临时转发</span>
+          <input type="text" class="name-input" style="display: none;">
+          <span class="redirect-status">活跃</span>
+        </div>
+        <button class="remove-temp-redirect btn-danger-small">
+          <i class="material-icons">delete</i>
+        </button>
+      </div>
+      <div class="card-content">
+        <div class="redirect-info">
+          <div class="info-row">
+            <label>访问路径：</label>
+            <div class="path-display">
+              <code class="redirect-url"></code>
+              <button class="copy-url btn-small">
+                <i class="material-icons">content_copy</i>
+              </button>
+            </div>
+          </div>
+          <div class="info-row">
+            <label>目标URL：</label>
+            <span class="target-url"></span>
+          </div>
+          <div class="info-row">
+            <label>过期时间：</label>
+            <span class="expires-time"></span>
+          </div>
+          <div class="info-row">
+            <label>剩余时间：</label>
+            <span class="remaining-time"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 创建临时转发弹窗模板 -->
+  <template id="create-temp-redirect-modal">
+    <div class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="material-icons">link</i> 创建临时转发</h3>
+          <button class="close-modal btn-danger-small">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="temp-target-url">目标URL *</label>
+            <input type="url" id="temp-target-url" placeholder="https://www.example.com/file.exe" required>
+          </div>
+          <div class="form-group">
+            <label for="temp-expires-in">过期时间 *</label>
+            <div class="expire-options">
+              <label class="radio-option">
+                <input type="radio" name="expire-type" value="time" checked>
+                <span>指定时间</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="expire-type" value="permanent">
+                <span>永久有效</span>
+              </label>
+            </div>
+            <div id="time-input-group" class="time-input-group">
+              <input type="number" id="temp-expires-in" min="60" max="2592000" value="3600">
+              <small>最小60秒，最大30天 (2592000秒)</small>
+            </div>
+          </div>
+          
+          <div class="advanced-section">
+            <div class="advanced-toggle">
+              <button type="button" class="toggle-temp-advanced">
+                <i class="material-icons">expand_more</i>
+                <span>高级配置</span>
+              </button>
+            </div>
+            <div class="advanced-content" style="display: none;">
+              <div class="timeout-row">
+                <div class="form-group">
+                  <label for="temp-timeout">请求超时 (ms)</label>
+                  <input type="number" id="temp-timeout" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+                </div>
+                <div class="form-group">
+                  <label for="temp-connect-timeout">连接超时 (ms)</label>
+                  <input type="number" id="temp-connect-timeout" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+                </div>
+              </div>
+              <div class="headers-section">
+                <div class="headers-header">
+                  <label>请求头</label>
+                  <button class="add-temp-header btn-small">
+                    <i class="material-icons">add</i> 添加
+                  </button>
+                </div>
+                <div class="temp-headers-container">
+                  <!-- 请求头将在这里动态生成 -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary cancel-temp-redirect">取消</button>
+          <button class="btn-primary create-temp-redirect">
+            <i class="material-icons">add</i> 创建转发
+          </button>
+        </div>
+      </div>
     </div>
   </template>
 
