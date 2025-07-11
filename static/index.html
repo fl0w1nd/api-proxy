@@ -252,6 +252,10 @@
             <span class="target-url"></span>
           </div>
           <div class="info-row">
+            <label>转发模式：</label>
+            <span class="redirect-mode"></span>
+          </div>
+          <div class="info-row">
             <label>过期时间：</label>
             <span class="expires-time"></span>
           </div>
@@ -305,6 +309,12 @@
               </button>
             </div>
             <div class="advanced-content" style="display: none;">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="temp-redirect-only">
+                  302 重定向
+                </label>
+              </div>
               <div class="timeout-row">
                 <div class="form-group">
                   <label for="temp-timeout">请求超时 (ms)</label>

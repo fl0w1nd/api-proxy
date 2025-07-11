@@ -1218,6 +1218,20 @@ button .material-icons {
   margin: 0;
 }
 
+/* 复选框样式 */
+.form-group label input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+.redirect-mode {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 .time-input-group {
   transition: var(--transition);
 }

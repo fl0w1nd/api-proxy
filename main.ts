@@ -21,6 +21,7 @@ interface TempRedirect {
   extra_headers?: Record<string, string>;
   timeout?: number; // 请求超时时间（毫秒）
   connect_timeout?: number; // 连接超时时间（毫秒）
+  redirect_only?: boolean; // 是否仅跳转，而不代理请求
   created_at: number; // 创建时间戳
   expires_at: number; // 过期时间戳
 }
@@ -263,8 +264,6 @@ const saveConfig = async (config: Config): Promise<boolean> => {
   }
 };
 
-let config = await loadConfig();
-
 const log = (level: string, message: string) => {
   if (config.log_level === "debug" || (config.log_level === "info" && level !== "debug")) {
     const timestamp = new Date().toISOString();
@@ -276,9 +275,6 @@ const log = (level: string, message: string) => {
     console.log(`${timestamp} [${colorFunc(level.toUpperCase())}] ${message}`);
   }
 };
-
-// 加载临时转发数据
-await loadTempRedirects();
 
 const saveRequestLog = (prefix: string, log: RequestLog) => {
   if (!requestLogs[prefix]) {
@@ -420,7 +416,7 @@ const handler = async (request: Request): Promise<Response> => {
           // 创建新的临时转发
           try {
             const body = await request.json();
-            const { target_url, expires_in, extra_headers, timeout, connect_timeout } = body;
+            const { target_url, expires_in, extra_headers, timeout, connect_timeout, redirect_only } = body;
             
             if (!target_url || expires_in === undefined) {
               return new Response(JSON.stringify({ success: false, error: "Missing required fields" }), {
@@ -444,6 +440,7 @@ const handler = async (request: Request): Promise<Response> => {
               extra_headers,
               timeout,
               connect_timeout,
+              redirect_only: redirect_only || false, // 默认不代理
               created_at: now,
               expires_at: expires_in === -1 ? -1 : now + (expires_in * 1000), // -1 表示永久
             };
@@ -548,8 +545,21 @@ const handler = async (request: Request): Promise<Response> => {
         return new Response("Temporary redirect has expired", { status: 410 });
       }
       
+      // 302 重定向
+      if (tempRedirect.redirect_only) {
+        log("info", `Redirecting ${pathname} to ${tempRedirect.target_url}`);
+        return new Response(null, {
+          status: 302,
+          headers: {
+            "Location": `${tempRedirect.target_url}${url.search}`,
+            "Content-Type": "text/plain",
+            "Content-Length": "0",
+          },
+        });
+      }
+
       const targetUrl = `${tempRedirect.target_url}${url.search}`;
-      log("info", `Temporary redirect ${pathname} to ${targetUrl}`);
+      log("info", `Proxying ${pathname} to ${targetUrl}`);
       
       const startTime = performance.now();
       
@@ -581,18 +591,27 @@ const handler = async (request: Request): Promise<Response> => {
         
         clearTimeout(timeoutId);
         
-        // 注意：根据要求，临时转发不记录日志
-        
+        // 记录请求日志
+        saveRequestLog(tempRedirect.id, {
+          timestamp: new Date().toISOString(),
+          method: request.method,
+          path: pathname + url.search,
+          targetUrl,
+          status: response.status,
+          duration: Math.round(performance.now() - startTime),
+        });
+
         // 处理响应头，特别是文件下载相关的头信息
         const responseHeaders = new Headers(response.headers);
         processFileDownloadHeaders(responseHeaders, targetUrl);
-        
+
         return new Response(response.body, {
           status: response.status,
           headers: responseHeaders,
         });
       } catch (error) {
         clearTimeout(timeoutId);
+        const endTime = performance.now();
         
         let status = 502;
         let errorMessage = error.message;
@@ -605,6 +624,16 @@ const handler = async (request: Request): Promise<Response> => {
         } else {
           log("error", `Temporary redirect ${pathname} failed: ${error.message}`);
         }
+        
+        // 记录错误请求日志
+        saveRequestLog(tempRedirect.id, {
+          timestamp: new Date().toISOString(),
+          method: request.method,
+          path: pathname + url.search,
+          targetUrl,
+          status: status,
+          duration: Math.round(endTime - startTime),
+        });
         
         return new Response(`Temporary Redirect Failed: ${errorMessage}`, { status: status });
       }
@@ -719,6 +748,10 @@ try {
     console.error(red(`Failed to create static directory: ${error.message}`));
   }
 }
+
+// 初始化配置和临时转发数据
+let config = await loadConfig();
+await loadTempRedirects();
 
 serve(handler, { port: 5000 });
 console.log(green("🚀 Proxy running on port 5000"));

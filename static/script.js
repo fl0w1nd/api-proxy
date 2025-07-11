@@ -797,6 +797,16 @@ function createTempRedirectElement(redirect) {
   element.querySelector('.redirect-url').textContent = redirect.path;
   element.querySelector('.target-url').textContent = redirect.target_url;
   
+  // 设置转发模式
+  const redirectMode = element.querySelector('.redirect-mode');
+  if (redirect.redirect_only) {
+    redirectMode.textContent = '302 重定向';
+    redirectMode.style.color = 'var(--warning-color)';
+  } else {
+    redirectMode.textContent = '代理请求';
+    redirectMode.style.color = 'var(--success-color)';
+  }
+  
   // 设置过期时间
   if (redirect.expires_at === -1) {
     element.querySelector('.expires-time').textContent = '永久有效';
@@ -967,6 +977,36 @@ function showCreateTempRedirectModal() {
     }
   });
   
+  // "仅跳转"选项切换时禁用/启用相关字段
+  const redirectOnlyCheckbox = modalElement.querySelector('#temp-redirect-only');
+  const timeoutInputs = modalElement.querySelectorAll('#temp-timeout, #temp-connect-timeout');
+  const headersSection = modalElement.querySelector('.headers-section');
+  
+  redirectOnlyCheckbox.addEventListener('change', () => {
+    const isRedirectOnly = redirectOnlyCheckbox.checked;
+    
+    // 禁用/启用超时设置
+    timeoutInputs.forEach(input => {
+      input.disabled = isRedirectOnly;
+      if (isRedirectOnly) {
+        input.style.opacity = '0.5';
+        input.style.pointerEvents = 'none';
+      } else {
+        input.style.opacity = '1';
+        input.style.pointerEvents = 'auto';
+      }
+    });
+    
+    // 禁用/启用请求头设置
+    if (isRedirectOnly) {
+      headersSection.style.opacity = '0.5';
+      headersSection.style.pointerEvents = 'none';
+    } else {
+      headersSection.style.opacity = '1';
+      headersSection.style.pointerEvents = 'auto';
+    }
+  });
+  
   // 添加请求头功能
   modalElement.querySelector('.add-temp-header').addEventListener('click', () => {
     const headersContainer = modalElement.querySelector('.temp-headers-container');
@@ -1006,6 +1046,7 @@ function createTempRedirect(modalElement) {
   const expiresIn = parseInt(modalElement.querySelector('#temp-expires-in').value);
   const timeout = parseInt(modalElement.querySelector('#temp-timeout').value);
   const connectTimeout = parseInt(modalElement.querySelector('#temp-connect-timeout').value);
+  const redirectOnly = modalElement.querySelector('#temp-redirect-only').checked;
   
   if (!targetUrl) {
     showNotification('请输入目标URL', 'warning');
@@ -1030,7 +1071,8 @@ function createTempRedirect(modalElement) {
   
   const requestData = {
     target_url: targetUrl,
-    expires_in: expireType === 'permanent' ? -1 : expiresIn
+    expires_in: expireType === 'permanent' ? -1 : expiresIn,
+    redirect_only: redirectOnly
   };
   
   if (Object.keys(extraHeaders).length > 0) {
