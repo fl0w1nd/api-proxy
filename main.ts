@@ -590,6 +590,10 @@ const handler = async (request: Request): Promise<Response> => {
       try {
         const headers = new Headers(request.headers);
 
+        // 设置 Host 头为目标服务器的主机名
+        const targetHost = new URL(tempRedirect.target_url).host;
+        headers.set('Host', targetHost);
+
         if (tempRedirect.extra_headers) {
           for (const [key, value] of Object.entries(tempRedirect.extra_headers)) {
             headers.set(key, value);
@@ -656,6 +660,10 @@ const handler = async (request: Request): Promise<Response> => {
       
       try {
         const headers = new Headers(request.headers);
+
+        // 设置 Host 头为目标服务器的主机名
+        const targetHost = new URL(routeConfig.target_url).host;
+        headers.set('Host', targetHost);
 
         if (routeConfig.extra_headers) {
           for (const [key, value] of Object.entries(routeConfig.extra_headers)) {
