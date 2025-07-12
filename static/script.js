@@ -584,8 +584,10 @@ function renderLogs(logs) {
   }
   
   // 渲染日志
-  logs.forEach(log => {
+  logs.forEach((log, index) => {
     const row = document.createElement('tr');
+    row.style.cursor = 'pointer';
+    row.title = '点击查看详情';
     
     // 时间
     const timeCell = document.createElement('td');
@@ -608,18 +610,22 @@ function renderLogs(logs) {
     }
     row.appendChild(methodCell);
     
-    // 路径
+    // 路径 - 超过60字符时省略
     const pathCell = document.createElement('td');
-    pathCell.textContent = log.path;
+    const truncatedPath = log.path.length > 60 ? log.path.substring(0, 60) + '...' : log.path;
+    pathCell.textContent = truncatedPath;
     pathCell.style.fontFamily = 'monospace';
     pathCell.style.fontSize = '13px';
+    pathCell.title = log.path; // 悬停时显示完整路径
     row.appendChild(pathCell);
     
-    // 目标URL
+    // 目标URL - 超过60字符时省略
     const targetCell = document.createElement('td');
-    targetCell.textContent = log.targetUrl;
+    const truncatedTarget = log.targetUrl.length > 60 ? log.targetUrl.substring(0, 60) + '...' : log.targetUrl;
+    targetCell.textContent = truncatedTarget;
     targetCell.style.fontFamily = 'monospace';
     targetCell.style.fontSize = '13px';
+    targetCell.title = log.targetUrl; // 悬停时显示完整URL
     row.appendChild(targetCell);
     
     // 状态
@@ -650,8 +656,123 @@ function renderLogs(logs) {
     }
     row.appendChild(durationCell);
     
+    // 点击整行查看详情
+    row.addEventListener('click', () => {
+      showLogDetail(log);
+    });
+    
     logsBody.appendChild(row);
   });
+}
+
+// 显示日志详情
+function showLogDetail(log) {
+  const modal = document.getElementById('log-detail-modal');
+  
+  // 填充基本信息
+  document.getElementById('detail-timestamp').textContent = new Date(log.timestamp).toLocaleString();
+  document.getElementById('detail-method').textContent = log.method;
+  document.getElementById('detail-path').textContent = log.path;
+  document.getElementById('detail-target-url').textContent = log.targetUrl;
+  document.getElementById('detail-status').textContent = log.status;
+  document.getElementById('detail-duration').textContent = `${log.duration}ms`;
+  
+  // 填充元数据
+  if (log.metadata) {
+    document.getElementById('detail-request-size').textContent = formatBytes(log.metadata.requestSize);
+    document.getElementById('detail-response-size').textContent = formatBytes(log.metadata.responseSize);
+    document.getElementById('detail-content-type').textContent = log.metadata.contentType || '未知';
+    document.getElementById('detail-user-agent').textContent = log.metadata.userAgent || '未知';
+  } else {
+    // 兼容旧格式
+    document.getElementById('detail-request-size').textContent = '未知';
+    document.getElementById('detail-response-size').textContent = '未知';
+    document.getElementById('detail-content-type').textContent = '未知';
+    document.getElementById('detail-user-agent').textContent = '未知';
+  }
+  
+  // 填充请求头
+  const requestHeadersContainer = document.getElementById('detail-request-headers');
+  requestHeadersContainer.innerHTML = '';
+  if (log.requestHeaders && Object.keys(log.requestHeaders).length > 0) {
+    Object.entries(log.requestHeaders).forEach(([key, value]) => {
+      const headerItem = document.createElement('div');
+      headerItem.className = 'header-item';
+      headerItem.innerHTML = `
+        <div class="header-key">${escapeHtml(key)}</div>
+        <div class="header-value">${escapeHtml(value)}</div>
+      `;
+      requestHeadersContainer.appendChild(headerItem);
+    });
+  } else {
+    requestHeadersContainer.innerHTML = '<div class="no-headers">无请求头数据</div>';
+  }
+  
+  // 填充响应头
+  const responseHeadersContainer = document.getElementById('detail-response-headers');
+  responseHeadersContainer.innerHTML = '';
+  if (log.responseHeaders && Object.keys(log.responseHeaders).length > 0) {
+    Object.entries(log.responseHeaders).forEach(([key, value]) => {
+      const headerItem = document.createElement('div');
+      headerItem.className = 'header-item';
+      headerItem.innerHTML = `
+        <div class="header-key">${escapeHtml(key)}</div>
+        <div class="header-value">${escapeHtml(value)}</div>
+      `;
+      responseHeadersContainer.appendChild(headerItem);
+    });
+  } else {
+    responseHeadersContainer.innerHTML = '<div class="no-headers">无响应头数据</div>';
+  }
+  
+  // 显示模态框
+  modal.style.display = 'flex';
+  
+  // 添加关闭事件
+  const closeButton = modal.querySelector('.close-modal');
+  closeButton.onclick = () => {
+    modal.style.display = 'none';
+  };
+  
+  // 点击背景关闭
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  };
+  
+  // ESC键关闭
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
+// 格式化字节大小
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  if (!bytes || bytes < 0) return '未知';
+  
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// HTML转义
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 // 工具函数

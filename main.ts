@@ -11,6 +11,15 @@ interface RequestLog {
   targetUrl: string;
   status: number;
   duration: number;
+  // 新增字段
+  requestHeaders: Record<string, string>;
+  responseHeaders: Record<string, string>;
+  metadata: {
+    requestSize: number;
+    responseSize: number;
+    contentType: string;
+    userAgent: string;
+  };
 }
 
 interface TempRedirect {
@@ -590,16 +599,6 @@ const handler = async (request: Request): Promise<Response> => {
         });
         
         clearTimeout(timeoutId);
-        
-        // 记录请求日志
-        saveRequestLog(tempRedirect.id, {
-          timestamp: new Date().toISOString(),
-          method: request.method,
-          path: pathname + url.search,
-          targetUrl,
-          status: response.status,
-          duration: Math.round(performance.now() - startTime),
-        });
 
         // 处理响应头，特别是文件下载相关的头信息
         const responseHeaders = new Headers(response.headers);
@@ -625,15 +624,7 @@ const handler = async (request: Request): Promise<Response> => {
           log("error", `Temporary redirect ${pathname} failed: ${error.message}`);
         }
         
-        // 记录错误请求日志
-        saveRequestLog(tempRedirect.id, {
-          timestamp: new Date().toISOString(),
-          method: request.method,
-          path: pathname + url.search,
-          targetUrl,
-          status: status,
-          duration: Math.round(endTime - startTime),
-        });
+        // 临时转发不记录日志
         
         return new Response(`Temporary Redirect Failed: ${errorMessage}`, { status: status });
       }
@@ -685,6 +676,15 @@ const handler = async (request: Request): Promise<Response> => {
           targetUrl,
           status: response.status,
           duration: Math.round(endTime - startTime),
+          // 新增字段
+          requestHeaders: Object.fromEntries(request.headers.entries()),
+          responseHeaders: Object.fromEntries(response.headers.entries()),
+          metadata: {
+            requestSize: request.headers.get('content-length') ? parseInt(request.headers.get('content-length')!, 10) : 0,
+            responseSize: response.headers.get('content-length') ? parseInt(response.headers.get('content-length')!, 10) : 0,
+            contentType: response.headers.get('content-type') || '',
+            userAgent: request.headers.get('user-agent') || '',
+          }
         });
 
         // 处理响应头，特别是文件下载相关的头信息
@@ -719,6 +719,15 @@ const handler = async (request: Request): Promise<Response> => {
           targetUrl,
           status: status,
           duration: Math.round(endTime - startTime),
+          // 新增字段
+          requestHeaders: Object.fromEntries(request.headers.entries()),
+          responseHeaders: {}, // 没有响应头
+          metadata: {
+            requestSize: request.headers.get('content-length') ? parseInt(request.headers.get('content-length')!, 10) : 0,
+            responseSize: 0,
+            contentType: '',
+            userAgent: request.headers.get('user-agent') || '',
+          }
         });
         
         return new Response(`API Connection Failed: ${errorMessage}`, { status: status });
