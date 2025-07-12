@@ -12,7 +12,12 @@ interface RequestLog {
   status: number;
   duration: number;
   // 新增字段
-  requestHeaders: Record<string, string>;
+  requestHeaders: {
+    original: Record<string, string>;  // 用户原始请求头
+    proxy: Record<string, string>;     // 代理发送的请求头
+    added: Record<string, string>;     // 代理添加的请求头
+    modified: Record<string, string>;  // 代理修改的请求头
+  };
   responseHeaders: Record<string, string>;
   metadata: {
     requestSize: number;
@@ -668,6 +673,27 @@ const handler = async (request: Request): Promise<Response> => {
         clearTimeout(timeoutId);
         const endTime = performance.now();
         
+        // 计算请求头差异
+        const originalHeaders = Object.fromEntries(request.headers.entries());
+        const proxyHeaders = Object.fromEntries(headers.entries());
+        const addedHeaders: Record<string, string> = {};
+        const modifiedHeaders: Record<string, string> = {};
+        
+        // 找出新增和修改的请求头
+        for (const [key, value] of Object.entries(proxyHeaders)) {
+          const lowerKey = key.toLowerCase();
+          const originalValue = originalHeaders[key] || 
+                               Object.keys(originalHeaders).find(k => k.toLowerCase() === lowerKey) 
+                               ? originalHeaders[Object.keys(originalHeaders).find(k => k.toLowerCase() === lowerKey)!] 
+                               : undefined;
+          
+          if (originalValue === undefined) {
+            addedHeaders[key] = value;
+          } else if (originalValue !== value) {
+            modifiedHeaders[key] = value;
+          }
+        }
+        
         // 记录请求日志
         saveRequestLog(prefix, {
           timestamp: new Date().toISOString(),
@@ -677,7 +703,12 @@ const handler = async (request: Request): Promise<Response> => {
           status: response.status,
           duration: Math.round(endTime - startTime),
           // 新增字段
-          requestHeaders: Object.fromEntries(request.headers.entries()),
+          requestHeaders: {
+            original: originalHeaders,
+            proxy: proxyHeaders,
+            added: addedHeaders,
+            modified: modifiedHeaders
+          },
           responseHeaders: Object.fromEntries(response.headers.entries()),
           metadata: {
             requestSize: request.headers.get('content-length') ? parseInt(request.headers.get('content-length')!, 10) : 0,
@@ -711,6 +742,27 @@ const handler = async (request: Request): Promise<Response> => {
           log("error", `API ${pathname} failed: ${error.message}`);
         }
         
+        // 计算请求头差异（错误情况）
+        const originalHeaders = Object.fromEntries(request.headers.entries());
+        const proxyHeaders = Object.fromEntries(headers.entries());
+        const addedHeaders: Record<string, string> = {};
+        const modifiedHeaders: Record<string, string> = {};
+        
+        // 找出新增和修改的请求头
+        for (const [key, value] of Object.entries(proxyHeaders)) {
+          const lowerKey = key.toLowerCase();
+          const originalValue = originalHeaders[key] || 
+                               Object.keys(originalHeaders).find(k => k.toLowerCase() === lowerKey) 
+                               ? originalHeaders[Object.keys(originalHeaders).find(k => k.toLowerCase() === lowerKey)!] 
+                               : undefined;
+          
+          if (originalValue === undefined) {
+            addedHeaders[key] = value;
+          } else if (originalValue !== value) {
+            modifiedHeaders[key] = value;
+          }
+        }
+        
         // 记录错误请求日志
         saveRequestLog(prefix, {
           timestamp: new Date().toISOString(),
@@ -720,7 +772,12 @@ const handler = async (request: Request): Promise<Response> => {
           status: status,
           duration: Math.round(endTime - startTime),
           // 新增字段
-          requestHeaders: Object.fromEntries(request.headers.entries()),
+          requestHeaders: {
+            original: originalHeaders,
+            proxy: proxyHeaders,
+            added: addedHeaders,
+            modified: modifiedHeaders
+          },
           responseHeaders: {}, // 没有响应头
           metadata: {
             requestSize: request.headers.get('content-length') ? parseInt(request.headers.get('content-length')!, 10) : 0,

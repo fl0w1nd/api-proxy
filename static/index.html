@@ -203,9 +203,22 @@
                       </div>
                       
                       <div class="detail-section">
-                        <h4><i class="material-icons">call_made</i> 请求头</h4>
+                        <h4><i class="material-icons">call_made</i> 请求头信息</h4>
+                        <div class="headers-tabs">
+                          <button class="header-tab-btn active" data-tab="original">
+                            <i class="material-icons">person</i> 用户原始请求头
+                          </button>
+                          <button class="header-tab-btn" data-tab="proxy">
+                            <i class="material-icons">swap_horiz</i> 代理发送请求头
+                          </button>
+                          <button class="header-tab-btn" data-tab="changes">
+                            <i class="material-icons">edit</i> 代理修改
+                          </button>
+                        </div>
                         <div class="headers-container">
-                          <div id="detail-request-headers" class="headers-list"></div>
+                          <div id="detail-original-headers" class="headers-tab-content active"></div>
+                          <div id="detail-proxy-headers" class="headers-tab-content"></div>
+                          <div id="detail-changes-headers" class="headers-tab-content"></div>
                         </div>
                       </div>
                       

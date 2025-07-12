@@ -1375,8 +1375,53 @@ button .material-icons {
   color: var(--text-primary);
 }
 
+/* 请求头标签页样式 */
+.headers-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.header-tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+  border-bottom: 2px solid transparent;
+}
+
+.header-tab-btn:hover {
+  color: var(--primary-color);
+  background: var(--bg-primary);
+}
+
+.header-tab-btn.active {
+  color: var(--primary-color);
+  background: var(--bg-primary);
+  border-bottom-color: var(--primary-color);
+}
+
+.header-tab-btn .material-icons {
+  font-size: 16px;
+}
+
 .headers-container {
   padding: 16px;
+}
+
+.headers-tab-content {
+  display: none;
+}
+
+.headers-tab-content.active {
+  display: block;
 }
 
 .headers-list {
@@ -1393,6 +1438,17 @@ button .material-icons {
   background: var(--bg-secondary);
   border-radius: 4px;
   border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.header-item.added {
+  border-left: 4px solid var(--success-color);
+  background: rgba(78, 205, 196, 0.1);
+}
+
+.header-item.modified {
+  border-left: 4px solid var(--warning-color);
+  background: rgba(254, 202, 87, 0.1);
 }
 
 .header-key {
@@ -1400,6 +1456,9 @@ button .material-icons {
   color: var(--text-secondary);
   font-size: 12px;
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .header-value {
@@ -1408,6 +1467,74 @@ button .material-icons {
   color: var(--text-primary);
   word-break: break-all;
   line-height: 1.4;
+}
+
+/* 请求头标记徽章 */
+.header-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header-badge.added {
+  background: var(--success-color);
+  color: white;
+}
+
+.header-badge.modified {
+  background: var(--warning-color);
+  color: white;
+}
+
+/* 修改汇总部分 */
+.changes-section {
+  margin-bottom: 20px;
+}
+
+.changes-section h5 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.changes-section h5 .material-icons {
+  font-size: 16px;
+}
+
+/* 值对比显示 */
+.value-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.original-value {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 107, 107, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 3px solid var(--danger-color);
+}
+
+.modified-value {
+  font-size: 11px;
+  color: var(--text-primary);
+  background: rgba(254, 202, 87, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 3px solid var(--warning-color);
 }
 
 .no-headers {
@@ -1458,5 +1585,25 @@ button .material-icons {
   .header-key {
     font-weight: 700;
     color: var(--primary-color);
+  }
+  
+  /* 请求头标签页响应式 */
+  .headers-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .header-tab-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  
+  .value-comparison {
+    gap: 2px;
+  }
+  
+  .original-value,
+  .modified-value {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }

@@ -691,22 +691,138 @@ function showLogDetail(log) {
     document.getElementById('detail-user-agent').textContent = '未知';
   }
   
-  // 填充请求头
-  const requestHeadersContainer = document.getElementById('detail-request-headers');
-  requestHeadersContainer.innerHTML = '';
-  if (log.requestHeaders && Object.keys(log.requestHeaders).length > 0) {
-    Object.entries(log.requestHeaders).forEach(([key, value]) => {
-      const headerItem = document.createElement('div');
-      headerItem.className = 'header-item';
-      headerItem.innerHTML = `
-        <div class="header-key">${escapeHtml(key)}</div>
-        <div class="header-value">${escapeHtml(value)}</div>
-      `;
-      requestHeadersContainer.appendChild(headerItem);
-    });
+  // 填充请求头信息
+  const originalHeadersContainer = document.getElementById('detail-original-headers');
+  const proxyHeadersContainer = document.getElementById('detail-proxy-headers');
+  const changesHeadersContainer = document.getElementById('detail-changes-headers');
+  
+  // 清空容器
+  originalHeadersContainer.innerHTML = '';
+  proxyHeadersContainer.innerHTML = '';
+  changesHeadersContainer.innerHTML = '';
+  
+  if (log.requestHeaders && typeof log.requestHeaders === 'object') {
+    // 新格式：包含 original, proxy, added, modified 字段
+    if (log.requestHeaders.original) {
+      // 用户原始请求头
+      if (Object.keys(log.requestHeaders.original).length > 0) {
+        Object.entries(log.requestHeaders.original).forEach(([key, value]) => {
+          const headerItem = document.createElement('div');
+          headerItem.className = 'header-item';
+          headerItem.innerHTML = `
+            <div class="header-key">${escapeHtml(key)}</div>
+            <div class="header-value">${escapeHtml(value)}</div>
+          `;
+          originalHeadersContainer.appendChild(headerItem);
+        });
+      } else {
+        originalHeadersContainer.innerHTML = '<div class="no-headers">无用户请求头数据</div>';
+      }
+      
+      // 代理发送请求头
+      if (log.requestHeaders.proxy && Object.keys(log.requestHeaders.proxy).length > 0) {
+        Object.entries(log.requestHeaders.proxy).forEach(([key, value]) => {
+          const headerItem = document.createElement('div');
+          headerItem.className = 'header-item';
+          
+          // 标记新增或修改的请求头
+          let itemClass = '';
+          let badge = '';
+          if (log.requestHeaders.added && log.requestHeaders.added[key]) {
+            itemClass = ' added';
+            badge = '<span class="header-badge added">新增</span>';
+          } else if (log.requestHeaders.modified && log.requestHeaders.modified[key]) {
+            itemClass = ' modified';
+            badge = '<span class="header-badge modified">修改</span>';
+          }
+          
+          headerItem.className = `header-item${itemClass}`;
+          headerItem.innerHTML = `
+            <div class="header-key">${escapeHtml(key)}${badge}</div>
+            <div class="header-value">${escapeHtml(value)}</div>
+          `;
+          proxyHeadersContainer.appendChild(headerItem);
+        });
+      } else {
+        proxyHeadersContainer.innerHTML = '<div class="no-headers">无代理请求头数据</div>';
+      }
+      
+      // 代理修改汇总
+      const hasChanges = (log.requestHeaders.added && Object.keys(log.requestHeaders.added).length > 0) ||
+                        (log.requestHeaders.modified && Object.keys(log.requestHeaders.modified).length > 0);
+      
+      if (hasChanges) {
+        if (log.requestHeaders.added && Object.keys(log.requestHeaders.added).length > 0) {
+          const addedSection = document.createElement('div');
+          addedSection.className = 'changes-section';
+          addedSection.innerHTML = '<h5><i class="material-icons">add</i> 新增的请求头</h5>';
+          
+          Object.entries(log.requestHeaders.added).forEach(([key, value]) => {
+            const headerItem = document.createElement('div');
+            headerItem.className = 'header-item added';
+            headerItem.innerHTML = `
+              <div class="header-key">${escapeHtml(key)}</div>
+              <div class="header-value">${escapeHtml(value)}</div>
+            `;
+            addedSection.appendChild(headerItem);
+          });
+          
+          changesHeadersContainer.appendChild(addedSection);
+        }
+        
+        if (log.requestHeaders.modified && Object.keys(log.requestHeaders.modified).length > 0) {
+          const modifiedSection = document.createElement('div');
+          modifiedSection.className = 'changes-section';
+          modifiedSection.innerHTML = '<h5><i class="material-icons">edit</i> 修改的请求头</h5>';
+          
+          Object.entries(log.requestHeaders.modified).forEach(([key, value]) => {
+            const headerItem = document.createElement('div');
+            headerItem.className = 'header-item modified';
+            const originalValue = log.requestHeaders.original[key] || '未知';
+            headerItem.innerHTML = `
+              <div class="header-key">${escapeHtml(key)}</div>
+              <div class="header-value">
+                <div class="value-comparison">
+                  <div class="original-value">原始: ${escapeHtml(originalValue)}</div>
+                  <div class="modified-value">修改: ${escapeHtml(value)}</div>
+                </div>
+              </div>
+            `;
+            modifiedSection.appendChild(headerItem);
+          });
+          
+          changesHeadersContainer.appendChild(modifiedSection);
+        }
+      } else {
+        changesHeadersContainer.innerHTML = '<div class="no-headers">代理服务器未修改请求头</div>';
+      }
+    } else {
+      // 兼容旧格式
+      if (Object.keys(log.requestHeaders).length > 0) {
+        Object.entries(log.requestHeaders).forEach(([key, value]) => {
+          const headerItem = document.createElement('div');
+          headerItem.className = 'header-item';
+          headerItem.innerHTML = `
+            <div class="header-key">${escapeHtml(key)}</div>
+            <div class="header-value">${escapeHtml(value)}</div>
+          `;
+          originalHeadersContainer.appendChild(headerItem);
+        });
+      } else {
+        originalHeadersContainer.innerHTML = '<div class="no-headers">无请求头数据</div>';
+      }
+      
+      proxyHeadersContainer.innerHTML = '<div class="no-headers">旧版本数据，无代理请求头信息</div>';
+      changesHeadersContainer.innerHTML = '<div class="no-headers">旧版本数据，无修改信息</div>';
+    }
   } else {
-    requestHeadersContainer.innerHTML = '<div class="no-headers">无请求头数据</div>';
+    originalHeadersContainer.innerHTML = '<div class="no-headers">无请求头数据</div>';
+    proxyHeadersContainer.innerHTML = '<div class="no-headers">无代理请求头数据</div>';
+    changesHeadersContainer.innerHTML = '<div class="no-headers">无修改信息</div>';
   }
+  
+  // 设置请求头标签页切换功能
+  setupHeaderTabs();
   
   // 填充响应头
   const responseHeadersContainer = document.getElementById('detail-response-headers');
@@ -749,6 +865,30 @@ function showLogDetail(log) {
     }
   };
   document.addEventListener('keydown', handleEscape);
+}
+
+// 设置请求头标签页切换功能
+function setupHeaderTabs() {
+  const tabButtons = document.querySelectorAll('.header-tab-btn');
+  const tabContents = document.querySelectorAll('.headers-tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.getAttribute('data-tab');
+      
+      // 更新按钮状态
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      
+      // 更新内容显示
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+        if (content.id === `detail-${targetTab}-headers`) {
+          content.classList.add('active');
+        }
+      });
+    });
+  });
 }
 
 // 格式化字节大小
