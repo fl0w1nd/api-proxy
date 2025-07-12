@@ -33,6 +33,7 @@ const headerTemplate = document.getElementById('header-template');
 const tempRedirectTemplate = document.getElementById('temp-redirect-template');
 const createTempRedirectModal = document.getElementById('create-temp-redirect-modal');
 const editTempRedirectModal = document.getElementById('edit-temp-redirect-modal');
+const editMappingModal = document.getElementById('edit-mapping-modal');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', init);
@@ -236,65 +237,41 @@ function createMappingElement(prefix, mapping) {
   const template = mappingTemplate.content.cloneNode(true);
   const element = template.querySelector('.mapping-card');
   
-  // 设置基本字段
-  element.querySelector('.prefix-input').value = prefix;
-  element.querySelector('.target-url-input').value = mapping.target_url;
-  
-  // 更新卡片标题显示映射名称
-  const titleElement = element.querySelector('.mapping-title');
-  const titleInput = element.querySelector('.title-input');
+  // 设置标题
   const mappingName = mapping.name || 'default';
+  element.querySelector('.mapping-title').textContent = mappingName;
   
-  titleElement.textContent = mappingName;
-  titleInput.value = mappingName;
+  // 设置基本信息
+  element.querySelector('.prefix-display').textContent = prefix;
+  element.querySelector('.target-url-display').textContent = mapping.target_url;
   
-  // 设置标题点击编辑功能
-  setupTitleEditing(titleElement, titleInput);
-  
-  // 设置超时配置
+  // 设置超时信息
   if (mapping.timeout) {
-    element.querySelector('.timeout-input').value = mapping.timeout;
+    element.querySelector('.timeout-display').textContent = `${mapping.timeout}ms`;
   }
   if (mapping.connect_timeout) {
-    element.querySelector('.connect-timeout-input').value = mapping.connect_timeout;
+    element.querySelector('.connect-timeout-display').textContent = `${mapping.connect_timeout}ms`;
   }
   
-  // 设置高级配置切换
-  const toggleButton = element.querySelector('.toggle-advanced');
-  const advancedContent = element.querySelector('.advanced-content');
+  // 设置请求头信息
+  const headersRow = element.querySelector('.headers-row');
+  const headersDisplay = element.querySelector('.headers-display');
   
-  toggleButton.addEventListener('click', function() {
-    const isExpanded = advancedContent.style.display !== 'none';
+  if (mapping.extra_headers && Object.keys(mapping.extra_headers).length > 0) {
+    headersRow.style.display = 'flex';
+    headersDisplay.innerHTML = '';
     
-    if (isExpanded) {
-      advancedContent.style.display = 'none';
-      toggleButton.classList.remove('expanded');
-    } else {
-      advancedContent.style.display = 'block';
-      toggleButton.classList.add('expanded');
+    for (const [key, value] of Object.entries(mapping.extra_headers)) {
+      const headerSpan = document.createElement('span');
+      headerSpan.className = 'header-item';
+      headerSpan.innerHTML = `<strong>${key}:</strong> ${value}`;
+      headersDisplay.appendChild(headerSpan);
     }
-  });
+  }
   
-  // 设置删除按钮事件
-  element.querySelector('.remove-mapping').addEventListener('click', function() {
-    if (confirm('确定要删除此映射吗?')) {
-      // 添加删除动画
-      element.classList.add('fade-out');
-      setTimeout(() => {
-        element.remove();
-        
-        // 检查是否需要显示空状态
-        if (mappingsContainer.children.length === 0) {
-          showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加映射"按钮创建API映射');
-        }
-      }, 300);
-    }
-  });
-
-  // 设置复制按钮事件
+  // 设置复制按钮
   element.querySelector('.copy-mapping-url').addEventListener('click', function() {
-    const prefixInput = element.querySelector('.prefix-input');
-    const url = `${window.location.origin}${prefixInput.value}`;
+    const url = `${window.location.origin}${prefix}`;
     
     // 使用多种方式尝试复制
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -308,111 +285,34 @@ function createMappingElement(prefix, mapping) {
     }
   });
   
-  // 设置添加请求头按钮事件
-  element.querySelector('.add-header').addEventListener('click', function() {
-    const headersContainer = element.querySelector('.headers-container');
-    const headerElement = createHeaderElement();
-    headersContainer.appendChild(headerElement);
-    
-    // 添加动画效果
-    headerElement.classList.add('fade-in');
-    setTimeout(() => {
-      headerElement.classList.remove('fade-in');
-    }, 300);
+  // 设置编辑按钮
+  element.querySelector('.edit-mapping').addEventListener('click', function() {
+    showEditMappingModal(prefix, mapping);
   });
   
-  // 添加已有的请求头
-  const headersContainer = element.querySelector('.headers-container');
-  if (mapping.extra_headers) {
-    Object.entries(mapping.extra_headers).forEach(([key, value]) => {
-      const headerElement = createHeaderElement(key, value);
-      headersContainer.appendChild(headerElement);
-    });
-  }
-  
-  return element;
-}
-
-function setupTitleEditing(titleElement, titleInput) {
-  // 点击标题进入编辑模式
-  titleElement.addEventListener('click', function() {
-    titleElement.style.display = 'none';
-    titleInput.style.display = 'inline-block';
-    titleInput.focus();
-    titleInput.select();
-  });
-  
-  // 处理编辑完成
-  function finishEditing() {
-    const newName = titleInput.value.trim() || 'default';
-    titleElement.textContent = newName;
-    titleElement.style.display = 'inline-block';
-    titleInput.style.display = 'none';
-  }
-  
-  // 按Enter或失去焦点时完成编辑
-  titleInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      finishEditing();
-    } else if (e.key === 'Escape') {
-      // 取消编辑，恢复原值
-      titleInput.value = titleElement.textContent;
-      titleElement.style.display = 'inline-block';
-      titleInput.style.display = 'none';
+  // 设置删除按钮事件
+  element.querySelector('.remove-mapping').addEventListener('click', function() {
+    if (confirm('确定要删除此映射吗?')) {
+      deleteMapping(prefix, element);
     }
   });
   
-  titleInput.addEventListener('blur', finishEditing);
-}
-
-function createHeaderElement(key = '', value = '') {
-  const template = headerTemplate.content.cloneNode(true);
-  const element = template.querySelector('.header-row');
-  
-  element.querySelector('.header-key').value = key;
-  element.querySelector('.header-value').value = value;
-  
-  element.querySelector('.remove-header').addEventListener('click', function() {
-    // 添加删除动画
-    element.classList.add('fade-out');
-    setTimeout(() => {
-      element.remove();
-    }, 300);
-  });
+  // 存储映射数据以便编辑
+  element.dataset.prefix = prefix;
+  element.dataset.mappingData = JSON.stringify(mapping);
   
   return element;
 }
 
 function addMapping() {
-  const mappingElement = createMappingElement('', { name: 'default', target_url: '' });
-  
-  // 如果是第一个映射，清除空状态提示
-  if (mappingsContainer.querySelector('.empty-state')) {
-    mappingsContainer.innerHTML = '';
-  }
-  
-  mappingsContainer.appendChild(mappingElement);
-  
-  // 添加动画效果
-  mappingElement.classList.add('fade-in');
-  setTimeout(() => {
-    mappingElement.classList.remove('fade-in');
-  }, 300);
-  
-  // 滚动到新添加的映射
-  mappingElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  
-  // 自动聚焦到路径前缀输入框
-  const firstInput = mappingElement.querySelector('.prefix-input');
-  if (firstInput) {
-    firstInput.focus();
-  }
+  // 直接显示编辑映射弹窗来创建新映射
+  showEditMappingModal('', { name: 'default', target_url: '' });
 }
 
 function saveConfig() {
-  // 构建配置对象
+  // 构建配置对象，保留现有的API映射
   const newConfig = {
-    api_mappings: {},
+    api_mappings: currentConfig.api_mappings,
     log_level: logLevelSelect.value
   };
   
@@ -427,56 +327,7 @@ function saveConfig() {
     newConfig.default_connect_timeout = defaultConnectTimeout;
   }
   
-  // 获取所有映射
-  const mappingElements = mappingsContainer.querySelectorAll('.mapping-card');
-  
-  for (const element of mappingElements) {
-    const name = element.querySelector('.mapping-title').textContent.trim() || 'default';
-    const prefix = element.querySelector('.prefix-input').value.trim();
-    const targetUrl = element.querySelector('.target-url-input').value.trim();
-    
-    if (!prefix || !targetUrl) {
-      showNotification('请为所有映射填写路径前缀和目标URL', 'warning');
-      return;
-    }
-    
-    // 构建请求头对象
-    const extraHeaders = {};
-    const headerElements = element.querySelectorAll('.header-row');
-    
-    for (const headerElement of headerElements) {
-      const key = headerElement.querySelector('.header-key').value.trim();
-      const value = headerElement.querySelector('.header-value').value.trim();
-      
-      if (key && value) {
-        extraHeaders[key] = value;
-      }
-    }
-    
-    // 获取超时配置
-    const timeout = parseInt(element.querySelector('.timeout-input').value);
-    const connectTimeout = parseInt(element.querySelector('.connect-timeout-input').value);
-    
-    // 添加到配置
-    newConfig.api_mappings[prefix] = {
-      name: name,
-      target_url: targetUrl
-    };
-    
-    if (Object.keys(extraHeaders).length > 0) {
-      newConfig.api_mappings[prefix].extra_headers = extraHeaders;
-    }
-    
-    // 添加超时配置（如果有设置）
-    if (timeout && timeout > 0) {
-      newConfig.api_mappings[prefix].timeout = timeout;
-    }
-    if (connectTimeout && connectTimeout > 0) {
-      newConfig.api_mappings[prefix].connect_timeout = connectTimeout;
-    }
-  }
-  
-  // 保存配置
+  // 保存配置到服务器
   saveConfigToServer(newConfig);
 }
 
@@ -1716,5 +1567,440 @@ function updateTempRedirect(redirectId, modalElement) {
     showLoading(false);
     console.error('Update temp redirect error:', error);
     showNotification(`更新失败: ${error.message}`, 'error');
+  });
+}
+
+// 显示编辑映射弹窗
+function showEditMappingModal(prefix, mapping) {
+  const modal = editMappingModal.content.cloneNode(true);
+  const modalElement = modal.querySelector('.modal-overlay');
+  
+  // 判断是否为新建映射
+  const isNewMapping = prefix === '' && mapping.target_url === '';
+  
+  // 设置标题
+  modalElement.querySelector('h3').innerHTML = isNewMapping ? 
+    '<i class="material-icons">add</i> 添加API映射' : 
+    '<i class="material-icons">edit</i> 编辑API映射';
+  
+  // 设置保存按钮文本
+  modalElement.querySelector('.save-edit-mapping').innerHTML = isNewMapping ?
+    '<i class="material-icons">add</i> 添加映射' :
+    '<i class="material-icons">save</i> 保存修改';
+  
+  // 填充现有数据
+  modalElement.querySelector('#edit-mapping-name').value = mapping.name || 'default';
+  modalElement.querySelector('#edit-mapping-prefix').value = prefix || '';
+  modalElement.querySelector('#edit-mapping-target-url').value = mapping.target_url || '';
+  
+  if (mapping.timeout) {
+    modalElement.querySelector('#edit-mapping-timeout').value = mapping.timeout;
+  }
+  if (mapping.connect_timeout) {
+    modalElement.querySelector('#edit-mapping-connect-timeout').value = mapping.connect_timeout;
+  }
+  
+  // 填充请求头
+  const headersContainer = modalElement.querySelector('.edit-mapping-headers-container');
+  if (mapping.extra_headers) {
+    for (const [key, value] of Object.entries(mapping.extra_headers)) {
+      const headerElement = createEditMappingHeaderElement(key, value);
+      headersContainer.appendChild(headerElement);
+    }
+  }
+  
+  // 设置事件监听
+  modalElement.querySelector('.close-modal').addEventListener('click', () => {
+    document.body.removeChild(modalElement);
+  });
+  
+  modalElement.querySelector('.cancel-edit-mapping').addEventListener('click', () => {
+    document.body.removeChild(modalElement);
+  });
+  
+  // 点击遮罩关闭
+  modalElement.addEventListener('click', (e) => {
+    if (e.target === modalElement) {
+      document.body.removeChild(modalElement);
+    }
+  });
+
+  // 高级配置切换
+  const toggleButton = modalElement.querySelector('.toggle-edit-mapping-advanced');
+  const advancedContent = modalElement.querySelector('.advanced-content');
+  
+  toggleButton.addEventListener('click', () => {
+    const isExpanded = advancedContent.style.display !== 'none';
+    
+    if (isExpanded) {
+      advancedContent.style.display = 'none';
+      toggleButton.classList.remove('expanded');
+    } else {
+      advancedContent.style.display = 'block';
+      toggleButton.classList.add('expanded');
+    }
+  });
+  
+  // 添加请求头功能
+  modalElement.querySelector('.add-edit-mapping-header').addEventListener('click', () => {
+    const headerElement = createEditMappingHeaderElement();
+    headersContainer.appendChild(headerElement);
+  });
+  
+  // 保存按钮
+  modalElement.querySelector('.save-edit-mapping').addEventListener('click', () => {
+    if (isNewMapping) {
+      addNewMapping(modalElement);
+    } else {
+      updateMapping(prefix, modalElement);
+    }
+  });
+  
+  document.body.appendChild(modalElement);
+}
+
+// 创建编辑映射模式的请求头元素
+function createEditMappingHeaderElement(key = '', value = '') {
+  const headerElement = document.createElement('div');
+  headerElement.className = 'header-row';
+  headerElement.innerHTML = `
+    <input type="text" class="header-key" placeholder="Header名称" value="${key}">
+    <input type="text" class="header-value" placeholder="Header值" value="${value}">
+    <button class="remove-header btn-danger-small">
+      <i class="material-icons">close</i>
+    </button>
+  `;
+  
+  // 删除按钮事件
+  headerElement.querySelector('.remove-header').addEventListener('click', () => {
+    headerElement.remove();
+  });
+  
+  return headerElement;
+}
+
+// 添加新映射
+function addNewMapping(modalElement) {
+  const name = modalElement.querySelector('#edit-mapping-name').value.trim();
+  const prefix = modalElement.querySelector('#edit-mapping-prefix').value.trim();
+  const targetUrl = modalElement.querySelector('#edit-mapping-target-url').value.trim();
+  const timeout = parseInt(modalElement.querySelector('#edit-mapping-timeout').value);
+  const connectTimeout = parseInt(modalElement.querySelector('#edit-mapping-connect-timeout').value);
+  
+  if (!name) {
+    showNotification('请输入映射名称', 'warning');
+    return;
+  }
+  
+  if (!prefix) {
+    showNotification('请输入路径前缀', 'warning');
+    return;
+  }
+  
+  if (!targetUrl) {
+    showNotification('请输入目标URL', 'warning');
+    return;
+  }
+  
+  // 检查前缀是否已存在
+  if (currentConfig.api_mappings[prefix]) {
+    showNotification('路径前缀已存在，请使用其他前缀', 'warning');
+    return;
+  }
+  
+  // 收集请求头
+  const extraHeaders = {};
+  const headerElements = modalElement.querySelectorAll('.header-row');
+  headerElements.forEach(element => {
+    const key = element.querySelector('.header-key').value.trim();
+    const value = element.querySelector('.header-value').value.trim();
+    if (key && value) {
+      extraHeaders[key] = value;
+    }
+  });
+  
+  // 构建新映射
+  const newMapping = {
+    name: name,
+    target_url: targetUrl
+  };
+  
+  if (Object.keys(extraHeaders).length > 0) {
+    newMapping.extra_headers = extraHeaders;
+  }
+  
+  if (timeout && timeout > 0) {
+    newMapping.timeout = timeout;
+  }
+  
+  if (connectTimeout && connectTimeout > 0) {
+    newMapping.connect_timeout = connectTimeout;
+  }
+  
+  // 添加到配置
+  currentConfig.api_mappings[prefix] = newMapping;
+  
+  // 构建完整配置并保存到后端
+  const newConfig = {
+    api_mappings: currentConfig.api_mappings,
+    log_level: currentConfig.log_level
+  };
+  
+  // 保留全局超时配置
+  if (currentConfig.default_timeout) {
+    newConfig.default_timeout = currentConfig.default_timeout;
+  }
+  if (currentConfig.default_connect_timeout) {
+    newConfig.default_connect_timeout = currentConfig.default_connect_timeout;
+  }
+  
+  showLoading(true);
+  
+  // 保存到后端
+  fetchWithAuth('/api/config', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newConfig)
+  })
+  .then(response => response.json())
+  .then(result => {
+    showLoading(false);
+    if (result.success) {
+      // 更新本地配置
+      currentConfig = newConfig;
+      
+      // 重新渲染配置
+      renderConfig();
+      
+      // 关闭弹窗
+      document.body.removeChild(modalElement);
+      
+      showNotification('映射添加成功', 'success');
+      
+      // 更新日志前缀选项
+      loadPrefixOptions();
+    } else {
+      // 如果保存失败，恢复原状态
+      delete currentConfig.api_mappings[prefix];
+      showNotification(`添加失败: ${result.error || '未知错误'}`, 'error');
+    }
+  })
+  .catch(error => {
+    showLoading(false);
+    // 如果保存失败，恢复原状态
+    delete currentConfig.api_mappings[prefix];
+    console.error('Add mapping error:', error);
+    showNotification(`添加失败: ${error.message}`, 'error');
+  });
+}
+
+// 更新映射
+function updateMapping(oldPrefix, modalElement) {
+  const name = modalElement.querySelector('#edit-mapping-name').value.trim();
+  const prefix = modalElement.querySelector('#edit-mapping-prefix').value.trim();
+  const targetUrl = modalElement.querySelector('#edit-mapping-target-url').value.trim();
+  const timeout = parseInt(modalElement.querySelector('#edit-mapping-timeout').value);
+  const connectTimeout = parseInt(modalElement.querySelector('#edit-mapping-connect-timeout').value);
+  
+  if (!name) {
+    showNotification('请输入映射名称', 'warning');
+    return;
+  }
+  
+  if (!prefix) {
+    showNotification('请输入路径前缀', 'warning');
+    return;
+  }
+  
+  if (!targetUrl) {
+    showNotification('请输入目标URL', 'warning');
+    return;
+  }
+  
+  // 检查前缀是否已存在（如果前缀改变了）
+  if (prefix !== oldPrefix && currentConfig.api_mappings[prefix]) {
+    showNotification('路径前缀已存在，请使用其他前缀', 'warning');
+    return;
+  }
+  
+  // 收集请求头
+  const extraHeaders = {};
+  const headerElements = modalElement.querySelectorAll('.header-row');
+  headerElements.forEach(element => {
+    const key = element.querySelector('.header-key').value.trim();
+    const value = element.querySelector('.header-value').value.trim();
+    if (key && value) {
+      extraHeaders[key] = value;
+    }
+  });
+  
+  // 构建更新后的映射
+  const updatedMapping = {
+    name: name,
+    target_url: targetUrl
+  };
+  
+  if (Object.keys(extraHeaders).length > 0) {
+    updatedMapping.extra_headers = extraHeaders;
+  }
+  
+  if (timeout && timeout > 0) {
+    updatedMapping.timeout = timeout;
+  }
+  
+  if (connectTimeout && connectTimeout > 0) {
+    updatedMapping.connect_timeout = connectTimeout;
+  }
+  
+  // 备份原始配置以便回滚
+  const originalMapping = currentConfig.api_mappings[oldPrefix];
+  const prefixChanged = prefix !== oldPrefix;
+  
+  // 如果前缀改变了，删除旧的映射
+  if (prefixChanged) {
+    delete currentConfig.api_mappings[oldPrefix];
+  }
+  
+  // 更新映射
+  currentConfig.api_mappings[prefix] = updatedMapping;
+  
+  // 构建完整配置并保存到后端
+  const newConfig = {
+    api_mappings: currentConfig.api_mappings,
+    log_level: currentConfig.log_level
+  };
+  
+  // 保留全局超时配置
+  if (currentConfig.default_timeout) {
+    newConfig.default_timeout = currentConfig.default_timeout;
+  }
+  if (currentConfig.default_connect_timeout) {
+    newConfig.default_connect_timeout = currentConfig.default_connect_timeout;
+  }
+  
+  showLoading(true);
+  
+  // 保存到后端
+  fetchWithAuth('/api/config', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newConfig)
+  })
+  .then(response => response.json())
+  .then(result => {
+    showLoading(false);
+    if (result.success) {
+      // 更新本地配置
+      currentConfig = newConfig;
+      
+      // 重新渲染配置
+      renderConfig();
+      
+      // 关闭弹窗
+      document.body.removeChild(modalElement);
+      
+      showNotification('映射更新成功', 'success');
+      
+      // 更新日志前缀选项
+      loadPrefixOptions();
+    } else {
+      // 如果保存失败，恢复原状态
+      if (prefixChanged) {
+        delete currentConfig.api_mappings[prefix];
+        currentConfig.api_mappings[oldPrefix] = originalMapping;
+      } else {
+        currentConfig.api_mappings[oldPrefix] = originalMapping;
+      }
+      showNotification(`更新失败: ${result.error || '未知错误'}`, 'error');
+    }
+  })
+  .catch(error => {
+    showLoading(false);
+    // 如果保存失败，恢复原状态
+    if (prefixChanged) {
+      delete currentConfig.api_mappings[prefix];
+      currentConfig.api_mappings[oldPrefix] = originalMapping;
+    } else {
+      currentConfig.api_mappings[oldPrefix] = originalMapping;
+    }
+    console.error('Update mapping error:', error);
+    showNotification(`更新失败: ${error.message}`, 'error');
+  });
+}
+
+function deleteMapping(prefix, element) {
+  // 保存原始映射以便回滚
+  const originalMapping = currentConfig.api_mappings[prefix];
+  
+  // 从本地配置中删除
+  delete currentConfig.api_mappings[prefix];
+  
+  // 添加删除动画
+  element.classList.add('fade-out');
+  
+  // 构建完整配置并保存到后端
+  const newConfig = {
+    api_mappings: currentConfig.api_mappings,
+    log_level: currentConfig.log_level
+  };
+  
+  // 保留全局超时配置
+  if (currentConfig.default_timeout) {
+    newConfig.default_timeout = currentConfig.default_timeout;
+  }
+  if (currentConfig.default_connect_timeout) {
+    newConfig.default_connect_timeout = currentConfig.default_connect_timeout;
+  }
+  
+  showLoading(true);
+  
+  // 保存到后端
+  fetchWithAuth('/api/config', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newConfig)
+  })
+  .then(response => response.json())
+  .then(result => {
+    showLoading(false);
+    if (result.success) {
+      // 更新本地配置
+      currentConfig = newConfig;
+      
+      showNotification('映射删除成功', 'success');
+      
+      // 执行删除动画
+      setTimeout(() => {
+        element.remove();
+        
+        // 检查是否需要显示空状态
+        const mappingsContainer = document.getElementById('mappings-container');
+        if (mappingsContainer.children.length === 0) {
+          showEmptyState(mappingsContainer, '暂无API映射配置', '点击"添加映射"按钮创建API映射');
+        }
+      }, 300);
+      
+      // 更新日志前缀选项
+      loadPrefixOptions();
+    } else {
+      // 回滚本地更改
+      currentConfig.api_mappings[prefix] = originalMapping;
+      element.classList.remove('fade-out');
+      showNotification(`删除失败: ${result.error || '未知错误'}`, 'error');
+    }
+  })
+  .catch(error => {
+    showLoading(false);
+    console.error('Delete mapping error:', error);
+    // 回滚本地更改
+    currentConfig.api_mappings[prefix] = originalMapping;
+    element.classList.remove('fade-out');
+    showNotification(`删除失败: ${error.message}`, 'error');
   });
 }

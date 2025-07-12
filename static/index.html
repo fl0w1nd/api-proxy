@@ -49,7 +49,7 @@
                 <div class="card-header">
                   <h3><i class="material-icons">tune</i> 全局配置</h3>
                   <button id="save-config" class="btn-primary">
-                    <i class="material-icons">save</i> 保存配置
+                    <i class="material-icons">save</i> 保存全局配置
                   </button>
                 </div>
                 <div class="card-content">
@@ -245,12 +245,14 @@
       <div class="card-header">
         <div class="card-title">
           <i class="material-icons">swap_horiz</i>
-          <span class="mapping-title editable-title" title="点击编辑名称">API映射</span>
-          <input type="text" class="title-input" style="display: none;">
+          <span class="mapping-title">API映射</span>
         </div>
         <div class="card-actions">
           <button class="copy-mapping-url btn-small" title="复制URL">
             <i class="material-icons">content_copy</i>
+          </button>
+          <button class="edit-mapping btn-small" title="编辑配置">
+            <i class="material-icons">edit</i>
           </button>
           <button class="remove-mapping btn-danger-small">
             <i class="material-icons">delete</i>
@@ -258,45 +260,27 @@
         </div>
       </div>
       <div class="card-content">
-        <div class="mapping-basic">
-          <div class="input-group">
-            <label>路径前缀</label>
-            <input type="text" class="prefix-input" placeholder="/api" required>
+        <div class="mapping-info">
+          <div class="info-row">
+            <label>路径前缀：</label>
+            <span class="prefix-display"></span>
           </div>
-          <div class="input-group">
-            <label>目标URL</label>
-            <input type="text" class="target-url-input" placeholder="https://example.com/api" required>
+          <div class="info-row">
+            <label>目标URL：</label>
+            <span class="target-url-display"></span>
           </div>
-        </div>
-        
-        <div class="mapping-advanced">
-          <div class="advanced-toggle">
-            <button type="button" class="toggle-advanced">
-              <i class="material-icons">expand_more</i>
-              <span>高级配置</span>
-            </button>
+          <div class="info-row">
+            <label>请求超时：</label>
+            <span class="timeout-display">使用全局默认</span>
           </div>
-          <div class="advanced-content" style="display: none;">
-            <div class="timeout-row">
-              <div class="input-group">
-                <label>请求超时 (ms)</label>
-                <input type="number" class="timeout-input" min="1000" max="600000" step="1000" placeholder="使用全局默认">
-              </div>
-              <div class="input-group">
-                <label>连接超时 (ms)</label>
-                <input type="number" class="connect-timeout-input" min="1000" max="120000" step="1000" placeholder="使用全局默认">
-              </div>
-            </div>
-            <div class="headers-section">
-              <div class="headers-header">
-                <label>请求头</label>
-                <button class="add-header btn-small">
-                  <i class="material-icons">add</i> 添加
-                </button>
-              </div>
-              <div class="headers-container">
-                <!-- 请求头将在这里动态生成 -->
-              </div>
+          <div class="info-row">
+            <label>连接超时：</label>
+            <span class="connect-timeout-display">使用全局默认</span>
+          </div>
+          <div class="info-row headers-row" style="display: none;">
+            <label>请求头：</label>
+            <div class="headers-display">
+              <!-- 请求头将在这里显示 -->
             </div>
           </div>
         </div>
@@ -507,6 +491,72 @@
         <div class="modal-footer">
           <button class="btn-secondary cancel-edit-redirect">取消</button>
           <button class="btn-primary save-edit-redirect">
+            <i class="material-icons">save</i> 保存修改
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 编辑API映射弹窗模板 -->
+  <template id="edit-mapping-modal">
+    <div class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="material-icons">edit</i> 编辑API映射</h3>
+          <button class="close-modal btn-danger-small">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-mapping-name">名称 *</label>
+            <input type="text" id="edit-mapping-name" placeholder="API映射名称" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-mapping-prefix">路径前缀 *</label>
+            <input type="text" id="edit-mapping-prefix" placeholder="/api" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-mapping-target-url">目标URL *</label>
+            <input type="url" id="edit-mapping-target-url" placeholder="https://example.com/api" required>
+          </div>
+          
+          <div class="advanced-section">
+            <div class="advanced-toggle">
+              <button type="button" class="toggle-edit-mapping-advanced">
+                <i class="material-icons">expand_more</i>
+                <span>高级配置</span>
+              </button>
+            </div>
+            <div class="advanced-content" style="display: none;">
+              <div class="timeout-row">
+                <div class="form-group">
+                  <label for="edit-mapping-timeout">请求超时 (ms)</label>
+                  <input type="number" id="edit-mapping-timeout" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+                </div>
+                <div class="form-group">
+                  <label for="edit-mapping-connect-timeout">连接超时 (ms)</label>
+                  <input type="number" id="edit-mapping-connect-timeout" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+                </div>
+              </div>
+              <div class="headers-section">
+                <div class="headers-header">
+                  <label>请求头</label>
+                  <button class="add-edit-mapping-header btn-small">
+                    <i class="material-icons">add</i> 添加
+                  </button>
+                </div>
+                <div class="edit-mapping-headers-container">
+                  <!-- 请求头将在这里动态生成 -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary cancel-edit-mapping">取消</button>
+          <button class="btn-primary save-edit-mapping">
             <i class="material-icons">save</i> 保存修改
           </button>
         </div>

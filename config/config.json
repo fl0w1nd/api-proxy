@@ -12,8 +12,8 @@
       "name": "OpenRouter API",
       "target_url": "https://openrouter.ai/api",
       "extra_headers": {
-        "HTTP-Referer": "https://example.com",
-        "X-Title": "EXAMPLE"
+        "HTTP-Referer": "https://api.zcsouls.com",
+        "X-Title": "New API"
       }
     },
     "/github": {
