@@ -1140,7 +1140,8 @@ button .material-icons {
 }
 
 .advanced-section .toggle-advanced,
-.toggle-temp-advanced {
+.toggle-temp-advanced,
+.toggle-edit-advanced {
   background: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
@@ -1157,13 +1158,15 @@ button .material-icons {
 }
 
 .advanced-section .toggle-advanced:hover,
-.toggle-temp-advanced:hover {
+.toggle-temp-advanced:hover,
+.toggle-edit-advanced:hover {
   background: var(--bg-tertiary);
   border-color: var(--primary-color);
 }
 
 .advanced-section .toggle-advanced.expanded .material-icons,
-.toggle-temp-advanced.expanded .material-icons {
+.toggle-temp-advanced.expanded .material-icons,
+.toggle-edit-advanced.expanded .material-icons {
   transform: rotate(180deg);
 }
 

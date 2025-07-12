@@ -328,6 +328,9 @@
           <button class="copy-temp-url btn-small" title="复制URL">
             <i class="material-icons">content_copy</i>
           </button>
+          <button class="edit-temp-redirect btn-small" title="编辑配置">
+            <i class="material-icons">edit</i>
+          </button>
           <button class="remove-temp-redirect btn-danger-small">
             <i class="material-icons">delete</i>
           </button>
@@ -437,6 +440,74 @@
           <button class="btn-secondary cancel-temp-redirect">取消</button>
           <button class="btn-primary create-temp-redirect">
             <i class="material-icons">add</i> 创建转发
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 编辑临时转发弹窗模板 -->
+  <template id="edit-temp-redirect-modal">
+    <div class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="material-icons">edit</i> 编辑临时转发</h3>
+          <button class="close-modal btn-danger-small">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-temp-name">名称 *</label>
+            <input type="text" id="edit-temp-name" placeholder="临时转发名称" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-temp-target-url">目标URL *</label>
+            <input type="url" id="edit-temp-target-url" placeholder="https://www.example.com/file.exe" required>
+          </div>
+          
+          <div class="advanced-section">
+            <div class="advanced-toggle">
+              <button type="button" class="toggle-edit-advanced">
+                <i class="material-icons">expand_more</i>
+                <span>高级配置</span>
+              </button>
+            </div>
+            <div class="advanced-content" style="display: none;">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="edit-temp-redirect-only">
+                  302 重定向
+                </label>
+              </div>
+              <div class="timeout-row">
+                <div class="form-group">
+                  <label for="edit-temp-timeout">请求超时 (ms)</label>
+                  <input type="number" id="edit-temp-timeout" min="1000" max="600000" step="1000" placeholder="使用全局默认">
+                </div>
+                <div class="form-group">
+                  <label for="edit-temp-connect-timeout">连接超时 (ms)</label>
+                  <input type="number" id="edit-temp-connect-timeout" min="1000" max="120000" step="1000" placeholder="使用全局默认">
+                </div>
+              </div>
+              <div class="headers-section">
+                <div class="headers-header">
+                  <label>请求头</label>
+                  <button class="add-edit-header btn-small">
+                    <i class="material-icons">add</i> 添加
+                  </button>
+                </div>
+                <div class="edit-headers-container">
+                  <!-- 请求头将在这里动态生成 -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary cancel-edit-redirect">取消</button>
+          <button class="btn-primary save-edit-redirect">
+            <i class="material-icons">save</i> 保存修改
           </button>
         </div>
       </div>

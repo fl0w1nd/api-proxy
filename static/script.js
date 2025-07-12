@@ -32,6 +32,7 @@ const mappingTemplate = document.getElementById('mapping-template');
 const headerTemplate = document.getElementById('header-template');
 const tempRedirectTemplate = document.getElementById('temp-redirect-template');
 const createTempRedirectModal = document.getElementById('create-temp-redirect-modal');
+const editTempRedirectModal = document.getElementById('edit-temp-redirect-modal');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', init);
@@ -1103,6 +1104,11 @@ function createTempRedirectElement(redirect) {
   const nameInput = element.querySelector('.name-input');
   setupTempRedirectTitleEditing(nameElement, nameInput, redirect.id);
 
+  // 设置编辑按钮
+  element.querySelector('.edit-temp-redirect').addEventListener('click', () => {
+    showEditTempRedirectModal(redirect);
+  });
+
   // 设置删除按钮
   element.querySelector('.remove-temp-redirect').addEventListener('click', () => {
     if (confirm('确定要删除此临时转发吗？')) {
@@ -1501,5 +1507,214 @@ function updateTempRedirectName(redirectId, newName, nameElement, nameInput) {
     nameInput.value = nameElement.textContent;
     nameElement.style.display = 'inline-block';
     nameInput.style.display = 'none';
+  });
+}
+
+// 显示编辑临时转发模态框
+function showEditTempRedirectModal(redirect) {
+  const modal = editTempRedirectModal.content.cloneNode(true);
+  const modalElement = modal.querySelector('.modal-overlay');
+  
+  // 填充现有数据
+  modalElement.querySelector('#edit-temp-name').value = redirect.name || redirect.id;
+  modalElement.querySelector('#edit-temp-target-url').value = redirect.target_url || '';
+  modalElement.querySelector('#edit-temp-redirect-only').checked = redirect.redirect_only || false;
+  
+  if (redirect.timeout) {
+    modalElement.querySelector('#edit-temp-timeout').value = redirect.timeout;
+  }
+  if (redirect.connect_timeout) {
+    modalElement.querySelector('#edit-temp-connect-timeout').value = redirect.connect_timeout;
+  }
+  
+  // 填充请求头
+  const headersContainer = modalElement.querySelector('.edit-headers-container');
+  if (redirect.extra_headers) {
+    for (const [key, value] of Object.entries(redirect.extra_headers)) {
+      const headerElement = createEditHeaderElement(key, value);
+      headersContainer.appendChild(headerElement);
+    }
+  }
+  
+  // 设置事件监听
+  modalElement.querySelector('.close-modal').addEventListener('click', () => {
+    document.body.removeChild(modalElement);
+  });
+  
+  modalElement.querySelector('.cancel-edit-redirect').addEventListener('click', () => {
+    document.body.removeChild(modalElement);
+  });
+  
+  // 点击遮罩关闭
+  modalElement.addEventListener('click', (e) => {
+    if (e.target === modalElement) {
+      document.body.removeChild(modalElement);
+    }
+  });
+
+  // 高级配置切换
+  const toggleButton = modalElement.querySelector('.toggle-edit-advanced');
+  const advancedContent = modalElement.querySelector('.advanced-content');
+  
+  toggleButton.addEventListener('click', () => {
+    const isExpanded = advancedContent.style.display !== 'none';
+    
+    if (isExpanded) {
+      advancedContent.style.display = 'none';
+      toggleButton.classList.remove('expanded');
+    } else {
+      advancedContent.style.display = 'block';
+      toggleButton.classList.add('expanded');
+    }
+  });
+  
+  // "仅跳转"选项切换时禁用/启用相关字段
+  const redirectOnlyCheckbox = modalElement.querySelector('#edit-temp-redirect-only');
+  const timeoutInputs = modalElement.querySelectorAll('#edit-temp-timeout, #edit-temp-connect-timeout');
+  const headersSection = modalElement.querySelector('.headers-section');
+  
+  function toggleRedirectOnlyFields() {
+    const isRedirectOnly = redirectOnlyCheckbox.checked;
+    
+    // 禁用/启用超时设置
+    timeoutInputs.forEach(input => {
+      input.disabled = isRedirectOnly;
+      if (isRedirectOnly) {
+        input.style.opacity = '0.5';
+        input.style.pointerEvents = 'none';
+      } else {
+        input.style.opacity = '1';
+        input.style.pointerEvents = 'auto';
+      }
+    });
+    
+    // 禁用/启用请求头设置
+    if (isRedirectOnly) {
+      headersSection.style.opacity = '0.5';
+      headersSection.style.pointerEvents = 'none';
+    } else {
+      headersSection.style.opacity = '1';
+      headersSection.style.pointerEvents = 'auto';
+    }
+  }
+  
+  redirectOnlyCheckbox.addEventListener('change', toggleRedirectOnlyFields);
+  // 初始化状态
+  toggleRedirectOnlyFields();
+  
+  // 添加请求头功能
+  modalElement.querySelector('.add-edit-header').addEventListener('click', () => {
+    const headerElement = createEditHeaderElement();
+    headersContainer.appendChild(headerElement);
+  });
+  
+  // 保存按钮
+  modalElement.querySelector('.save-edit-redirect').addEventListener('click', () => {
+    updateTempRedirect(redirect.id, modalElement);
+  });
+  
+  document.body.appendChild(modalElement);
+}
+
+// 创建编辑模式的请求头元素
+function createEditHeaderElement(key = '', value = '') {
+  const headerElement = document.createElement('div');
+  headerElement.className = 'header-row';
+  headerElement.innerHTML = `
+    <input type="text" class="header-key" placeholder="Header名称" value="${key}">
+    <input type="text" class="header-value" placeholder="Header值" value="${value}">
+    <button class="remove-header btn-danger-small">
+      <i class="material-icons">close</i>
+    </button>
+  `;
+  
+  // 删除按钮事件
+  headerElement.querySelector('.remove-header').addEventListener('click', () => {
+    headerElement.remove();
+  });
+  
+  return headerElement;
+}
+
+// 更新临时转发
+function updateTempRedirect(redirectId, modalElement) {
+  const name = modalElement.querySelector('#edit-temp-name').value.trim();
+  const targetUrl = modalElement.querySelector('#edit-temp-target-url').value.trim();
+  const timeout = parseInt(modalElement.querySelector('#edit-temp-timeout').value);
+  const connectTimeout = parseInt(modalElement.querySelector('#edit-temp-connect-timeout').value);
+  const redirectOnly = modalElement.querySelector('#edit-temp-redirect-only').checked;
+  
+  if (!name) {
+    showNotification('请输入名称', 'warning');
+    return;
+  }
+  
+  if (!targetUrl) {
+    showNotification('请输入目标URL', 'warning');
+    return;
+  }
+  
+  // 收集请求头
+  const extraHeaders = {};
+  const headerElements = modalElement.querySelectorAll('.header-row');
+  headerElements.forEach(element => {
+    const key = element.querySelector('.header-key').value.trim();
+    const value = element.querySelector('.header-value').value.trim();
+    if (key && value) {
+      extraHeaders[key] = value;
+    }
+  });
+  
+  const requestData = {
+    name: name,
+    target_url: targetUrl,
+    redirect_only: redirectOnly
+  };
+  
+  if (Object.keys(extraHeaders).length > 0) {
+    requestData.extra_headers = extraHeaders;
+  } else {
+    // 如果没有请求头，发送空对象来清除现有的请求头
+    requestData.extra_headers = {};
+  }
+  
+  if (timeout && timeout > 0) {
+    requestData.timeout = timeout;
+  } else {
+    // 清除超时设置
+    requestData.timeout = undefined;
+  }
+  
+  if (connectTimeout && connectTimeout > 0) {
+    requestData.connect_timeout = connectTimeout;
+  } else {
+    // 清除连接超时设置
+    requestData.connect_timeout = undefined;
+  }
+  
+  showLoading(true);
+  
+  fetchWithAuth(`/api/temp-redirects/${redirectId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    showLoading(false);
+    if (result.success) {
+      showNotification('临时转发更新成功', 'success');
+      document.body.removeChild(modalElement);
+      loadTempRedirects(); // 重新加载列表
+    } else {
+      showNotification(`更新失败: ${result.error || '未知错误'}`, 'error');
+    }
+  })
+  .catch(error => {
+    showLoading(false);
+    console.error('Update temp redirect error:', error);
+    showNotification(`更新失败: ${error.message}`, 'error');
   });
 }

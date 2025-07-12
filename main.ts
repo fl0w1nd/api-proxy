@@ -496,21 +496,49 @@ const handler = async (request: Request): Promise<Response> => {
             });
           }
         } else if (request.method === "PUT") {
-          // 更新临时转发名称
+          // 更新临时转发配置
           if (tempRedirects.has(pathId)) {
             try {
               const body = await request.json();
-              const { name } = body;
+              const { name, target_url, extra_headers, timeout, connect_timeout, redirect_only } = body;
               
-              if (!name || !name.trim()) {
-                return new Response(JSON.stringify({ success: false, error: "Name is required" }), {
+              // 验证必填字段
+              if (name !== undefined && (!name || !name.trim())) {
+                return new Response(JSON.stringify({ success: false, error: "Name cannot be empty" }), {
+                  status: 400,
+                  headers: { "Content-Type": "application/json" },
+                });
+              }
+              
+              if (target_url !== undefined && (!target_url || !target_url.trim())) {
+                return new Response(JSON.stringify({ success: false, error: "Target URL cannot be empty" }), {
                   status: 400,
                   headers: { "Content-Type": "application/json" },
                 });
               }
               
               const redirect = tempRedirects.get(pathId)!;
-              redirect.name = name.trim();
+              
+              // 更新字段（只更新提供的字段）
+              if (name !== undefined) {
+                redirect.name = name.trim();
+              }
+              if (target_url !== undefined) {
+                redirect.target_url = target_url.trim();
+              }
+              if (extra_headers !== undefined) {
+                redirect.extra_headers = extra_headers;
+              }
+              if (timeout !== undefined) {
+                redirect.timeout = timeout;
+              }
+              if (connect_timeout !== undefined) {
+                redirect.connect_timeout = connect_timeout;
+              }
+              if (redirect_only !== undefined) {
+                redirect.redirect_only = redirect_only;
+              }
+              
               tempRedirects.set(pathId, redirect);
               
               // 保存到文件
