@@ -5,6 +5,7 @@ WORKDIR /app
 # 复制配置文件目录
 COPY config ./config
 COPY main.ts .
+COPY src ./src
 
 # 创建并复制静态文件目录
 RUN mkdir -p ./static
