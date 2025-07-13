@@ -27,6 +27,13 @@ const refreshLogsButton = document.getElementById('refresh-logs');
 const addTempRedirectButton = document.getElementById('add-temp-redirect');
 const tempRedirectsList = document.getElementById('temp-redirects-list');
 
+// 登录模态框相关元素
+const loginModal = document.getElementById('login-modal');
+const loginForm = document.getElementById('login-form');
+const adminPasswordInput = document.getElementById('admin-password');
+const cancelLoginButton = document.getElementById('cancel-login');
+const submitLoginButton = document.getElementById('submit-login');
+
 // 模板
 const mappingTemplate = document.getElementById('mapping-template');
 const headerTemplate = document.getElementById('header-template');
@@ -43,12 +50,30 @@ function init() {
   checkAuthStatus();
   
   // 事件监听
-  loginButton.addEventListener('click', login);
+  loginButton.addEventListener('click', showLoginModal);
   logoutButton.addEventListener('click', logout);
   addMappingButton.addEventListener('click', addMapping);
   saveConfigButton.addEventListener('click', saveConfig);
   refreshLogsButton.addEventListener('click', loadLogs);
   addTempRedirectButton.addEventListener('click', showCreateTempRedirectModal);
+  
+  // 登录模态框事件
+  cancelLoginButton.addEventListener('click', hideLoginModal);
+  loginForm.addEventListener('submit', handleLogin);
+  
+  // 点击模态框外部关闭
+  loginModal.addEventListener('click', (e) => {
+    if (e.target === loginModal) {
+      hideLoginModal();
+    }
+  });
+  
+  // ESC键关闭模态框
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && loginModal.style.display !== 'none') {
+      hideLoginModal();
+    }
+  });
   
   // 标签页切换
   tabButtons.forEach(button => {
@@ -67,76 +92,111 @@ function checkAuthStatus() {
   // 显示加载状态
   showLoading(true);
   
-  // 检查是否已保存认证信息
-  const credentials = localStorage.getItem('api_proxy_auth');
-  
-  if (credentials) {
-    // 尝试使用保存的认证信息
-    fetchWithAuth('/api/config', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${credentials}`
-      }
-    })
-    .then(response => {
-      if (response.ok) {
-        isAuthenticated = true;
-        updateAuthUI(true);
-        return response.json();
-      } else {
-        // 认证失败，清除本地存储
-        localStorage.removeItem('api_proxy_auth');
-        updateAuthUI(false);
-        throw new Error('Authentication failed');
-      }
-    })
-    .then(config => {
+  // 检查服务器端的认证状态
+  fetch('/api/auth/status', {
+    method: 'GET',
+    credentials: 'include', // 确保包含cookies
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.authenticated) {
+      isAuthenticated = true;
+      updateAuthUI(true);
       // 加载配置
+      return fetchWithAuth('/api/config');
+    } else {
+      isAuthenticated = false;
+      updateAuthUI(false);
+      showLoading(false);
+      return null;
+    }
+  })
+  .then(response => {
+    if (response && response.ok) {
+      return response.json();
+    } else if (response) {
+      throw new Error('Failed to load config');
+    }
+    return null;
+  })
+  .then(config => {
+    if (config) {
       currentConfig = config;
       renderConfig();
       loadPrefixOptions();
-      showLoading(false);
-    })
-    .catch(error => {
-      console.error('Auth check error:', error);
-      showLoading(false);
-      showNotification('无法验证登录状态', 'error');
-    });
-  } else {
+    }
+    showLoading(false);
+  })
+  .catch(error => {
+    console.error('Auth check error:', error);
+    isAuthenticated = false;
     updateAuthUI(false);
     showLoading(false);
-  }
+    showNotification('无法验证登录状态', 'error');
+  });
 }
 
-function login() {
-  const username = '';  // 用户名不重要，只需密码
-  const password = prompt('请输入管理密码:');
+// 登录模态框相关函数
+function showLoginModal() {
+  loginModal.style.display = 'flex';
+  adminPasswordInput.focus();
+  adminPasswordInput.value = '';
+}
+
+function hideLoginModal() {
+  loginModal.style.display = 'none';
+  adminPasswordInput.value = '';
+}
+
+function handleLogin(e) {
+  e.preventDefault();
   
-  if (!password) return;
+  const password = adminPasswordInput.value.trim();
+  
+  if (!password) {
+    showNotification('请输入密码', 'error');
+    return;
+  }
+  
+  // 禁用提交按钮，防止重复提交
+  submitLoginButton.disabled = true;
+  submitLoginButton.innerHTML = '<i class="material-icons">hourglass_empty</i> 登录中...';
   
   // 显示加载状态
   showLoading(true);
   
-  // 使用window.btoa进行base64编码，确保浏览器兼容性
-  const credentials = window.btoa(`${username}:${password}`);
-  
-  fetch('/api/config', {
-    method: 'GET',
+  fetch('/api/login', {
+    method: 'POST',
     headers: {
-      'Authorization': `Basic ${credentials}`
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 确保包含cookies
+    body: JSON.stringify({
+      username: 'admin',
+      password: password
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // 登录成功
+      isAuthenticated = true;
+      updateAuthUI(true);
+      hideLoginModal();
+      showNotification('登录成功', 'success');
+      
+      // 加载配置
+      return fetchWithAuth('/api/config');
+    } else {
+      showNotification(data.error || '登录失败', 'error');
+      throw new Error('Login failed');
     }
   })
   .then(response => {
-    if (response.ok) {
-      // 登录成功
-      isAuthenticated = true;
-      localStorage.setItem('api_proxy_auth', credentials);
-      updateAuthUI(true);
-      showNotification('登录成功', 'success');
+    if (response && response.ok) {
       return response.json();
     } else {
-      showNotification('密码错误或认证失败', 'error');
-      throw new Error('Authentication failed');
+      throw new Error('Failed to load config');
     }
   })
   .then(config => {
@@ -148,14 +208,46 @@ function login() {
   .catch(error => {
     console.error('Login error:', error);
     showLoading(false);
+  })
+  .finally(() => {
+    // 恢复提交按钮状态
+    submitLoginButton.disabled = false;
+    submitLoginButton.innerHTML = '<i class="material-icons">login</i> 登录';
   });
 }
 
+function login() {
+  // 这个函数现在由showLoginModal替代
+  showLoginModal();
+}
+
 function logout() {
-  localStorage.removeItem('api_proxy_auth');
-  isAuthenticated = false;
-  updateAuthUI(false);
-  showNotification('已退出登录', 'info');
+  // 显示加载状态
+  showLoading(true);
+  
+  fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include', // 确保包含cookies
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      isAuthenticated = false;
+      updateAuthUI(false);
+      showNotification('已退出登录', 'info');
+    } else {
+      showNotification('退出登录失败', 'error');
+    }
+    showLoading(false);
+  })
+  .catch(error => {
+    console.error('Logout error:', error);
+    // 即使请求失败，也清除本地状态
+    isAuthenticated = false;
+    updateAuthUI(false);
+    showNotification('已退出登录', 'info');
+    showLoading(false);
+  });
 }
 
 function updateAuthUI(authenticated) {
@@ -769,18 +861,10 @@ function escapeHtml(text) {
 
 // 工具函数
 function fetchWithAuth(url, options = {}) {
-  const credentials = localStorage.getItem('api_proxy_auth');
-  
-  if (!credentials) {
-    return Promise.reject(new Error('Not authenticated'));
-  }
-  
-  const headers = options.headers || {};
-  headers['Authorization'] = `Basic ${credentials}`;
-  
+  // 使用credentials: 'include'确保自动包含HttpOnly cookies
   return fetch(url, {
     ...options,
-    headers
+    credentials: 'include'
   });
 }
 

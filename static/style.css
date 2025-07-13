@@ -1659,3 +1659,143 @@ button .material-icons {
     padding: 2px 6px;
   }
 }
+
+/* 登录模态框样式 */
+.login-modal {
+  max-width: 400px;
+  width: 90%;
+}
+
+.login-modal .modal-header {
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.login-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.login-modal .modal-header .material-icons {
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.login-modal .modal-body {
+  padding: 2rem;
+}
+
+.login-modal .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-modal .form-group label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.login-modal .form-group label .material-icons {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+.login-modal .form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.login-modal .form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.login-modal .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.login-modal .form-actions button {
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius-small);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.login-modal .btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.login-modal .btn-secondary:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.login-modal .btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+}
+
+.login-modal .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+.login-modal .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 登录模态框动画 */
+.login-modal .modal-content {
+  animation: loginModalSlideIn 0.3s ease-out;
+}
+
+@keyframes loginModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .login-modal {
+    max-width: 95%;
+    margin: 1rem;
+  }
+  
+  .login-modal .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .login-modal .form-actions {
+    flex-direction: column;
+  }
+  
+  .login-modal .form-actions button {
+    width: 100%;
+  }
+}

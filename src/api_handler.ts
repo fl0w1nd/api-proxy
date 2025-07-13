@@ -1,4 +1,4 @@
-import { isAuthenticated, unauthorized } from "./auth.ts";
+import { isAuthenticated, unauthorized, validatePassword, generateJWT, loginSuccess, logoutSuccess } from "./auth.ts";
 import { saveConfig } from "./config.ts";
 import { requestLogs } from "./logger.ts";
 import { tempRedirects, cleanupExpiredRedirects, generateRandomPath, saveTempRedirects } from "./redirects.ts";
@@ -9,9 +9,58 @@ export const handleApiRequest = async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // 登录端点 - 不需要认证
+    if (pathname === "/api/login" && request.method === "POST") {
+        try {
+            const body = await request.json();
+            const { username, password } = body;
+
+            if (!password) {
+                return new Response(JSON.stringify({ success: false, error: "密码不能为空" }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            if (validatePassword(password)) {
+                const token = await generateJWT("admin");
+                return loginSuccess(token);
+            } else {
+                return new Response(JSON.stringify({ success: false, error: "密码错误" }), {
+                    status: 401,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+        } catch (error) {
+            return new Response(JSON.stringify({ success: false, error: "请求格式错误" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+    }
+
+    // 登出端点 - 需要认证
+    if (pathname === "/api/logout" && request.method === "POST") {
+        const isAuth = await isAuthenticated(request);
+        if (!isAuth) {
+            return unauthorized();
+        }
+        return logoutSuccess();
+    }
+
+    // 检查认证状态端点 - 不需要认证（用于前端检查状态）
+    if (pathname === "/api/auth/status" && request.method === "GET") {
+        const isAuth = await isAuthenticated(request);
+        return new Response(JSON.stringify({ authenticated: isAuth }), {
+            headers: { "Content-Type": "application/json" },
+        });
+    }
+
     // 需要认证的 API 端点
     if (pathname === "/api/config" || pathname === "/api/logs" || pathname.startsWith("/api/temp-redirects")) {
-        if (!isAuthenticated(request)) {
+        const isAuth = await isAuthenticated(request);
+        
+        if (!isAuth) {
             return unauthorized();
         }
 
