@@ -4,24 +4,43 @@ import { state } from "./state.ts";
 
 // 处理文件下载的响应头
 const processFileDownloadHeaders = (responseHeaders: Headers, targetUrl: string): void => {
-    // 处理文件下载的文件名
-    if (!responseHeaders.get('content-disposition')) {
-        const urlPath = new URL(targetUrl).pathname;
-        const fileName = urlPath.split('/').pop();
-
-        // 如果URL路径中有文件名（包含扩展名），设置Content-Disposition
-        if (fileName && fileName.includes('.')) {
-            // 对文件名进行URL解码，处理可能的编码字符
-            const decodedFileName = decodeURIComponent(fileName);
-            responseHeaders.set('content-disposition', `attachment; filename="${decodedFileName}"; filename*=UTF-8''${encodeURIComponent(decodedFileName)}`);
-        }
+    // 如果服务器已经明确指定了 content-disposition，则尊重服务器的意图
+    if (responseHeaders.has('content-disposition')) {
+        return;
     }
 
-    // 如果是常见的文件类型，确保设置正确的Content-Type
-    const contentType = responseHeaders.get('content-type');
+    const contentType = responseHeaders.get('content-type')?.split(';')[0].trim() || '';
+
+    // 预设一组明确的“非下载”内容类型，当响应头匹配时，不进行任何修改
+    const nonDownloadContentTypes = new Set([
+        'text/html',
+        'text/css',
+        'text/plain', // Add text/plain to prevent download of raw text/code files
+        'text/javascript', // Common for JS files
+        'application/javascript', // Also common for JS files
+        'application/json',
+        'application/xml',
+        'image/svg+xml', // SVGs are typically rendered inline
+    ]);
+
+    if (contentType && nonDownloadContentTypes.has(contentType)) {
+        return; // 如果是明确的非下载类型，则不进行任何处理
+    }
+
+    // --- 以下逻辑仅在 Content-Type 不明确且没有 Content-Disposition 时执行 ---
+
+    // 尝试从URL中推断文件名并设置 Content-Disposition
+    const urlPath = new URL(targetUrl).pathname;
+    const fileName = urlPath.split('/').pop();
+
+    // 如果URL路径中有文件名（包含扩展名），则认为它是一个下载项
+    if (fileName && fileName.includes('.')) {
+        const decodedFileName = decodeURIComponent(fileName);
+        responseHeaders.set('content-disposition', `attachment; filename="${decodedFileName}"; filename*=UTF-8''${encodeURIComponent(decodedFileName)}`);
+    }
+
+    // 如果 Content-Type 是通用的或缺失的，尝试根据文件扩展名进行修正
     if (!contentType || contentType === 'application/octet-stream') {
-        const urlPath = new URL(targetUrl).pathname;
-        const fileName = urlPath.split('/').pop();
         if (fileName) {
             const ext = fileName.split('.').pop()?.toLowerCase();
             const mimeTypes: Record<string, string> = {
@@ -39,14 +58,11 @@ const processFileDownloadHeaders = (responseHeaders: Headers, targetUrl: string)
                 'ppt': 'application/vnd.ms-powerpoint',
                 'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                 'txt': 'text/plain',
-                'json': 'application/json',
-                'xml': 'application/xml',
                 'csv': 'text/csv',
                 'jpg': 'image/jpeg',
                 'jpeg': 'image/jpeg',
                 'png': 'image/png',
                 'gif': 'image/gif',
-                'svg': 'image/svg+xml',
                 'mp4': 'video/mp4',
                 'mp3': 'audio/mpeg',
                 'wav': 'audio/wav'
