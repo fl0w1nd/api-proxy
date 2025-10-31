@@ -1,6 +1,7 @@
 import { log, saveRequestLog } from "./logger.ts";
 import { tempRedirects, cleanupExpiredRedirects, saveTempRedirects } from "./redirects.ts";
 import { state } from "./state.ts";
+import { isInternalURL } from "./network_filter.ts";
 
 // 处理文件下载的响应头
 const processFileDownloadHeaders = (responseHeaders: Headers, targetUrl: string): void => {
@@ -99,6 +100,16 @@ export const handleProxyRequest = async (request: Request): Promise<Response> =>
                 return new Response("Temporary redirect has expired", { status: 410 });
             }
 
+            // 检查目标 URL 是否为内网地址
+            const internalCheck = isInternalURL(tempRedirect.target_url);
+            if (internalCheck.isInternal) {
+                log("warn", `Blocked internal network access: ${tempRedirect.target_url} - ${internalCheck.reason}`);
+                return new Response(
+                    `Access Denied: Proxy to internal network addresses is not allowed.\nReason: ${internalCheck.reason}`,
+                    { status: 403 }
+                );
+            }
+
             // 302 重定向
             if (tempRedirect.redirect_only) {
                 log("info", `Redirecting ${pathname} to ${tempRedirect.target_url}`);
@@ -183,6 +194,16 @@ export const handleProxyRequest = async (request: Request): Promise<Response> =>
     // 代理 API 请求
     for (const [prefix, routeConfig] of Object.entries(config.api_mappings)) {
         if (pathname.startsWith(prefix)) {
+            // 检查目标 URL 是否为内网地址
+            const internalCheck = isInternalURL(routeConfig.target_url);
+            if (internalCheck.isInternal) {
+                log("warn", `Blocked internal network access: ${routeConfig.target_url} - ${internalCheck.reason}`);
+                return new Response(
+                    `Access Denied: Proxy to internal network addresses is not allowed.\nReason: ${internalCheck.reason}`,
+                    { status: 403 }
+                );
+            }
+
             const targetUrl = `${routeConfig.target_url}${pathname.replace(prefix, "")}${url.search}`;
             log("info", `Proxying ${pathname} to ${targetUrl}`);
 
